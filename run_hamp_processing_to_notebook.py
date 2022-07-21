@@ -10,6 +10,18 @@ Created on Fri Jan 29 08:09:31 2021
 import os
 import glob
 import sys
+import init_paths
+
+working_path=init_paths.main()
+actual_working_path=os.getcwd()
+airborne_data_importer_path=working_path+"/Work/GIT_Repository/"+\
+                            "hamp_processing_py/"+\
+                                "hamp_processing_python/"
+                                
+airborne_processing_module_path=actual_working_path+"/src/"
+os.chdir(airborne_processing_module_path)
+sys.path.insert(1,os.getcwd())
+sys.path.insert(2,airborne_data_importer_path)
 
 import config_handler
 import campaign_time
@@ -24,8 +36,6 @@ import radar_attitude
 import radar_masks
 import unified_grid as unigrid
 
-#def main():
-#    
 try:
     import Flight_Campaign as Campaign
 except:
@@ -66,7 +76,7 @@ except:
 instruments_to_unify=["dropsondes"] # default is bahamas, dropsondes, radar, radiometer.    
 #%%
 # load config files
-cfg=config_handler.Configuration(major_path=os.getcwd())
+cfg=config_handler.Configuration(major_path=airborne_data_importer_path)
 #major_cfg_name="major_cfg"
 processing_cfg_name="unified_grid_cfg"    
 major_cfg_name="major_cfg"

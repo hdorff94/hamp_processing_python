@@ -1,0 +1,7 @@
+[Input]
+system = linux
+campaign = EUREC4A
+campaign_path = /scratch/uni/u237/users/hdorff/
+filenameprefix = EUREC4A_HALO_
+save_path = /home/zmaw/u300737/PhD/Work/EUREC4A
+
