@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+This is the major routine to run the hamp processing
+
 Created on Fri Jan 29 08:09:31 2021
 
 @author: u300737
