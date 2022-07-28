@@ -73,7 +73,7 @@ except:
 
 
 #%%
-instruments_to_unify=["dropsondes"] # default is bahamas, dropsondes, radar, radiometer.    
+instruments_to_unify=["bahamas"] # default is bahamas, dropsondes, radar, radiometer.    
 #%%
 # load config files
 cfg=config_handler.Configuration(major_path=airborne_data_importer_path)
@@ -162,7 +162,7 @@ cfg.add_entries_to_config_object(processing_cfg_name,
                                   "calibrate_radar":False})
 
 #%%
-processing_config_file=cfg.load_config_file(os.getcwd(),processing_cfg_name)
+processing_config_file=cfg.load_config_file(processing_cfg_name)
 
 processing_config_file["Input"]["data_path"]=processing_config_file["Input"][\
                                                 "campaign_path"]+"Flight_Data/"
@@ -197,7 +197,7 @@ Radar_cls.open_raw_radar_data(flight,date)
 raw_radar_ds=Radar_cls.raw_radar_ds
 #HAMP_cls.open_raw_hamp_data()
     
-import halo_data_plotter
+import halodataplot as halo_data_plotter
 
 Quick_Plotter=halo_data_plotter.Quicklook_Plotter(prcs_cfg_dict)
 Radiometer_Quicklook=halo_data_plotter.Radiometer_Quicklook(prcs_cfg_dict)

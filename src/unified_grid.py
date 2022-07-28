@@ -146,8 +146,8 @@ def filter_spikes(data,spike_threshold=None):
 ###############################################################################
 #%% Major functions in order to unify grid
 def unifyGrid_bahamas(flight,cfg_dict,bahamas_vars_use):
-    import Measurement_Instruments_QL
-    import Campaign_Time
+    import measurement_instruments_ql as Measurement_Instruments_QL
+    import campaign_time as Campaign_Time
     
     #%% Configurate work around
     date=str(flight)    

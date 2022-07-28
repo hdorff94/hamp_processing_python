@@ -35,7 +35,7 @@ class HALO_Devices():
     def __init__(self,cfg_dict):
         self.cfg_dict=cfg_dict
         self.campaign_name=self.cfg_dict["campaign"]
-        self.major_data_path=os.getcwd()+"/Flight_Data/"+self.campaign_name+"/"
+        self.major_data_path=self.cfg_dict["device_data_path"]
         self.halo_devices=["bahamas","bacardi","dropsonde","radiometer","lidar",
                            "radar","smart","specMACS"]
         self.avail_halo_devices={}

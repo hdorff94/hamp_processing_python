@@ -30,14 +30,13 @@ class Configuration():
                 }
         config_object["Input"]["save_path"]="/home/zmaw/u300737/PhD/Work/"+\
                 config_object["Input"]["campaign"]
-        major_config_file=self.load_config_file(self.major_path,
-                                                    file_name)
+        major_config_file=self.load_config_file(file_name)
         
         if system_is_windows:
             if not major_config_file["Input"]["system"]=="windows":
                 windows_paths={
                     "system":"windows",
-                "campaign_path":os.getcwd()+"/"    
+                "campaign_path":self.major_path+"/"    
                 }
                 windows_paths["save_path"]=windows_paths["campaign_path"]+"Save_path/"
         
@@ -46,10 +45,11 @@ class Configuration():
 #                self.add_entries_to_config_object(major_cfg_name,{"Comment":comment,
 #                                                         "Contact":contact})
             
-        file_name=file_name+".ini"
+        file_name=self.major_path+file_name+".ini"
         with open(file_name,'w') as conf:
             config_object.write(conf)
-            print("Config-File ",colored(file_name,"red"), "is created!")
+            print("Config-File ",colored(file_name,"red"),
+                  "is created!")
     
     def check_if_config_file_exists(self,name):
         if not os.path.isfile(name):
@@ -59,9 +59,9 @@ class Configuration():
             print("Config-file",name+".ini"," already exists")
         return True
     
-    def load_config_file(self,path,name):
+    def load_config_file(self,name):
         config_object = ConfigParser()
-        file_name=path+"/"+name+".ini"
+        file_name=self.major_path+"/"+name+".ini"
         print(file_name)
         config_object.read(file_name)
         return config_object
@@ -88,14 +88,14 @@ class Configuration():
     
         """    
         config_object_old= ConfigParser()
-        config_object_old.read(config_file_name+".ini")
+        config_object_old.read(self.major_path+config_file_name+".ini")
         
         # add dictionary entries to config_object
         for key in entry_dict.keys():
             config_object_old["Input"][key]=str(entry_dict[key])
         config_object_new=config_object_old
         # write config_objects into data_config file    
-        with open(config_file_name+".ini",'w') as conf:
+        with open(self.major_path+config_file_name+".ini",'w') as conf:
             config_object_new.write(conf)
         print("Entries: ",entry_dict.keys(),
               "have added to or changed in the config file")
@@ -182,14 +182,12 @@ class Configuration():
 
         # Check if config-File exists and if not create the relevant first one
         if self.check_if_config_file_exists(major_cfg_name):
-            major_config_file=self.load_config_file(self.major_path,
-                                                    major_cfg_name)
+            major_config_file=self.load_config_file(major_cfg_name)
         else:
             self.create_new_config_file(file_name=major_cfg_name+".ini")
         
         if self.check_if_config_file_exists(processing_cfg_name):
-            processing_config_file=self.load_config_file(self.major_path,
-                                                        processing_cfg_name)
+            processing_config_file=self.load_config_file(processing_cfg_name)
         else:
             self.create_new_config_file(file_name=processing_cfg_name+".ini")
         
@@ -202,7 +200,7 @@ class Configuration():
             if not major_config_file["Input"]["system"]=="windows":
                 windows_paths={
                     "system":"windows",
-                "campaign_path":os.getcwd()+"/"    
+                "campaign_path":self.major_path+"/"    
                 }
                 windows_paths["save_path"]=windows_paths["campaign_path"]+"Save_path/"
         
@@ -214,7 +212,7 @@ class Configuration():
         if not processing_config_file["Input"]["system"]=="windows":
             windows_paths={
                 "system":"windows",
-                "campaign_path":os.getcwd()+"/"}
+                "campaign_path":self.major_path+"/"}
             windows_paths["save_path"]=windows_paths["campaign_path"]+"Save_path/"
         
         
