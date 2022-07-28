@@ -152,7 +152,16 @@ class Radiometer_Errors():
                                    [96760,98944]],
                        '20200213': [],
                        '20200215': [],
-                       '20200218': [[76618,78863]]}
+                       '20200218': [[76618,78863]],
+                       # HALO-(AC)3
+                       '20220311': [],
+                       '20220312': [],
+                       '20220313': [],
+                       '20220314': [],
+                       '20220315': [],
+                       '20220316': [],
+                       '20220320': [],
+                       '20220321': []}
         
         #11990
         errors["11990"]={
@@ -195,6 +204,8 @@ class Radiometer_Errors():
                 # '20161015',{[1 927],9964,14945,17438};...
                 # '20161018',{[]};...
                 # '20200119', {[]};...
+                
+                # EUREC4A
                 '20200122':[[124529,124538],[126453,126457]],
                 '20200124':[],
                 '20200126':[],
@@ -208,7 +219,16 @@ class Radiometer_Errors():
                 '20200211':[[26200,26210], [96085,96101]],
                 '20200213':[],
                 '20200215':[],
-                '20200218':[]}
+                '20200218':[],
+                # HALO-(AC)3
+                '20220311': [],
+                '20220312': [],
+                '20220313': [],
+                '20220314': [],
+                '20220315': [],
+                '20220316': [],
+                '20220320': [],
+                '20220321': []}
 
         #%KV
         errors["KV"] = {'20131210':[5054, 6059, 7057, 8037],
@@ -249,6 +269,7 @@ class Radiometer_Errors():
                 # '20161014',{[1 1530]};...
                 # '20161015',{[1 493]};...
                 # '20161018',{[1 1658]};...
+                # EUREC4A
                 '20200119':[],
                 '20200122':[[1,8893]],
                 '20200124':[[1,16830]],
@@ -263,7 +284,16 @@ class Radiometer_Errors():
                 '20200211':[[1,7038], [92202,92213],[130000,130384]],
                 '20200213':[[1,9065]],
                 '20200215':[[1,12380]],
-                '20200218':[[1,3868],[113185,128415]]}
+                '20200218':[[1,3868],[113185,128415]],
+                # HALO-(AC)3
+                '20220311': [],
+                '20220312': [],
+                '20220313': [],
+                '20220314': [],
+                '20220315': [],
+                '20220316': [],
+                '20220320': [],
+                '20220321': []}
         
         #Assign errors to class
         self.errors=errors
@@ -323,7 +353,16 @@ class Radiometer_Errors():
             '20200211':[],
             '20200213':[[1,6165]],
             '20200215':[],
-            '20200218':[[1,5680]]}
+            '20200218':[[1,5680]],
+            # HALO-(AC)3
+            '20220311': [],
+            '20220312': [],
+            '20220313': [],
+            '20220314': [],
+            '20220315': [],
+            '20220316': [],
+            '20220320': [],
+            '20220321': []}
 
         sawtooth['11990'] = {'20131210':[],
             '20131211':[],
@@ -377,7 +416,16 @@ class Radiometer_Errors():
             '20200211':[],
             '20200213':[],
             '20200215':[],
-            '20200218':[]};
+            '20200218':[],
+             # HALO-(AC)3
+            '20220311': [],
+            '20220312': [],
+            '20220313': [],
+            '20220314': [],
+            '20220315': [],
+            '20220316': [],
+            '20220320': [],
+            '20220321': []}
 
         sawtooth['KV'] = {'20131210':[],
             '20131211':[],
@@ -431,7 +479,16 @@ class Radiometer_Errors():
             '20200211':[],
             '20200213':[],
             '20200215':[],
-            '20200218':[]};
+            '20200218':[],
+            # HALO-(AC)3
+            '20220311': [],
+            '20220312': [],
+            '20220313': [],
+            '20220314': [],
+            '20220315': [],
+            '20220316': [],
+            '20220320': [],
+            '20220321': []}
         # Assign sawtooth_table to class
         self.sawtooth=sawtooth
 
@@ -593,7 +650,7 @@ class Radiometer_Errors():
     
                     #% Get path to latest version of processed radiometer file
                     file_construction=self.raw_radiometer_path+\
-                                             str(module)+"/"+str(day)[2:]+"*.BRT.NC"
+                                             str(module)+"/*"+str(day)[2:]+"*.NC"
                     file_list_day= glob.glob(file_construction)
                     time_raw_list=[] # List of xr.DataArrays
                     k=0
@@ -726,7 +783,7 @@ class Radiometer_Errors():
             
                 #% Get path to latest version of processed radiometer file
                 file_construction=self.raw_radiometer_path+\
-                                         str(module)+"/"+str(date)[2:]+"*.BRT.NC"
+                                         str(module)+"/*"+str(date)[2:]+"*.NC"
                 file_list_day= glob.glob(file_construction)
                 if len(file_list_day)>0:
                     time_raw_list=[] # List of xr.DataArrays
@@ -734,7 +791,10 @@ class Radiometer_Errors():
                     for file in file_list_day:
                         #read radiometer frequencies
                         if k==0:
-                            module_freqs=xr.open_dataset(file).frequencies
+                            try:
+                                module_freqs=xr.open_dataset(file).frequencies
+                            except:
+                                module_freqs=xr.open_dataset(file).Freq
                         #% Preallocate array
                         #% Loop all found files
                         # Read time from original files
@@ -832,7 +892,7 @@ def main(function_configurated=False,
     
     if not function_configurated:
         import config_handler
-        from Campaign_Time import specify_dates_to_use as specify_dates
+        from campaign_time import specify_dates_to_use as specify_dates
 
         Flight_Dates={}
         Flight_Dates["EUREC4A"]={"RF01":"20200119","RF02":"20200122",

@@ -16,12 +16,14 @@ working_path=init_paths.main()
 actual_working_path=os.getcwd()
 airborne_data_importer_path=working_path+"/Work/GIT_Repository/"+\
                             "hamp_processing_py/"+\
-                                "hamp_processing_python/"
+                                "hamp_processing_python/" # This is also the major path where your data will be stored
                                 
 airborne_processing_module_path=actual_working_path+"/src/"
+airborne_plotting_module_path=actual_working_path+"/plotting/"
 os.chdir(airborne_processing_module_path)
 sys.path.insert(1,os.getcwd())
-sys.path.insert(2,airborne_data_importer_path)
+sys.path.insert(2,airborne_plotting_module_path)
+sys.path.insert(3,airborne_data_importer_path)
 
 import config_handler
 import campaign_time
@@ -73,7 +75,7 @@ except:
 
 
 #%%
-instruments_to_unify=["bahamas"] # default is bahamas, dropsondes, radar, radiometer.    
+instruments_to_unify=["radiometer"] # default is bahamas, dropsondes, radar, radiometer.    
 #%%
 # load config files
 cfg=config_handler.Configuration(major_path=airborne_data_importer_path)

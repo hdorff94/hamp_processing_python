@@ -7,8 +7,11 @@ Created on Fri May  7 18:26:48 2021
 import numpy as np
 import pandas as pd
 import xarray as xr
+
 import os
 import glob
+
+import pickle
 
 import Performance
 
@@ -29,9 +32,43 @@ class Radiometer_Processing():
     def __init__(self,cfg_dict):
         self.cfg_dict=cfg_dict
         self.radiometer_ds=None
+        
     
     # Major function calling several methods below, can also provide quicklooks
-    
+    def remove_turn_ascent_descent_data(self,radiometer_df,tb_dict):
+        print("Remove turn and ascent/descent data")
+        flight=self.cfg_dict["Flight_Dates_used"][0]
+        filepath  = self.cfg_dict["device_data_path"]+"all_pickle/"
+        pkl_fname = "uniData_bahamas_"+str(flight)+".pkl"
+        with open(filepath+pkl_fname,"rb") as pkl_file:
+            bahamas_dict=pickle.load(pkl_file)
+            
+            bahamas_cond=bahamas_dict["uniBahamas_roll_1d"].to_frame(name="Roll")\
+                    .join(bahamas_dict["uniBahamas_alt_1d"].to_frame(name="Alt"))
+            del bahamas_dict
+        
+        for var in radiometer_df.keys():
+            # Ignore times with roll angle large than roll angle threshold
+            roll_thres=float(self.cfg_dict['roll_threshold'])
+            roll_index=bahamas_cond[bahamas_cond["Roll"]>roll_thres].index
+            radiometer_df[var].loc[roll_index]=np.nan
+            # Ignore times below altitude threshold
+            alt_thres=float(self.cfg_dict['altitude_threshold'])
+            alt_index=bahamas_cond[bahamas_cond["Alt"]<alt_thres].index
+            radiometer_df[var].loc[alt_index]=np.nan
+        
+        # add processing in description
+        maneouver_removal_comment=" Strong flight manoeuvers removed." 
+        
+        if tb_dict["performed_processing"].startswith("No further"):
+            tb_dict["performed_processing"]=maneouver_removal_comment
+                                        
+        else:
+            tb_dict["performed_processing"]=\
+                tb_dict["performed_processing"]+\
+                    maneouver_removal_comment
+        return radiometer_df,tb_dict
+
     def remove_radiometer_errors(self,ds):
         version=self.cfg_dict["version"]+"."+self.cfg_dict["subversion"]
         # Load unified radiometer dataset, check for multiple files
@@ -83,7 +120,7 @@ class Radiometer_Processing():
         # check if the error pkl file exists
         if not os.path.exists(self.error_fpath+self.error_fname):
             # Then create it
-            import Error_Identification
+            import error_identification as Error_Identification
             
             radiometer_errors=Error_Identification.Radiometer_Errors(self.cfg_dict)
             radiometer_errors.identify_radiometer_errors()

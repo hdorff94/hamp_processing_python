@@ -24,27 +24,6 @@ performance=Performance.performance()
 #    pass
 #def get_heightidx():
 #    pass
-def remove_turn_ascent_descent_data(radiometer_dict,flight,cfg_dict):
-    print("Remove turn and ascent/descent data")
-    filepath  = cfg_dict["device_data_path"]+"all_pickle/"
-    pkl_fname = "uniData_bahamas_"+str(flight)+".pkl"
-    with open(filepath+pkl_fname,"rb") as pkl_file:
-        bahamas_dict=pickle.load(pkl_file)
-        
-        bahamas_cond=bahamas_dict["uniBahamas_roll_1d"].to_frame(name="Roll")\
-                .join(bahamas_dict["uniBahamas_alt_1d"].to_frame(name="Alt"))
-        del bahamas_dict
-        
-    for var in radiometer_dict.keys():
-        # Ignore times with roll angle large than roll angle threshold
-        roll_thres=float(cfg_dict['roll_threshold'])
-        roll_index=bahamas_cond[bahamas_cond["Roll"]>roll_thres].index
-        radiometer_dict[var].loc[roll_index]=np.nan
-        # Ignore times below altitude threshold
-        alt_thres=float(cfg_dict['altitude_threshold'])
-        alt_index=bahamas_cond[bahamas_cond["Alt"]<alt_thres].index
-        radiometer_dict[var].loc[alt_index]=np.nan
-    return radiometer_dict
 
 def transfer_data(uni_data,instr_var_data,height):
     """
@@ -994,7 +973,7 @@ def unifyGrid_radiometer(flight,uni_df,
             if correct_radiometer_time:
                 time_shift_command=""
                 #shift_comment_series.loc[var]=[]
-                import Processing_Unified_Grid as process_grid
+                import processing_unified_grid as process_grid
                 Radiometer_processing=process_grid.Radiometer_Processing(cfg_dict)
                 Radiometer_processing.lookup_radiometer_timeoffsets()
                 tb_data,shift_comment_series[var]=Radiometer_processing.\
@@ -1055,12 +1034,6 @@ def unifyGrid_radiometer(flight,uni_df,
                     interpolate_flag[var].index=to_interp_tmp_data.index
                     uni_df_radiometer[var]=interp_tmp_data
                     gap_filling_command="Gaps filled."
-                    if tb_data_dict["performed_processing"].startswith("No further"):
-                        tb_data_dict["performed_processing"]=gap_filling_command
-                    else:
-                        tb_data_dict["performed_processing"]=\
-                            tb_data_dict["performed_processing"]+\
-                                gap_filling_command
         # if no data is available
         else:
             """
@@ -1069,9 +1042,18 @@ def unifyGrid_radiometer(flight,uni_df,
                 
             """
             pass
+    if "gap_filling_command" in locals():
+        if tb_data_dict["performed_processing"].startswith("No further"):
+            tb_data_dict["performed_processing"]=gap_filling_command
+        else:
+            tb_data_dict["performed_processing"]=\
+                tb_data_dict["performed_processing"]+\
+                    gap_filling_command
+
     # Remove data from flight maneouvers (Turn, Ascent, Descent)    
-    uni_df_radiometer=remove_turn_ascent_descent_data(uni_df_radiometer,
-                                                      flight,cfg_dict)
+    uni_df_radiometer,tb_data_dict=Radiometer_processing.\
+                        remove_turn_ascent_descent_data(uni_df_radiometer,
+                                                        tb_data_dict)
     uni_df_radiometer_freq=[]
     for freq in radiometer_vars:
         uni_df_radiometer_freq.append(\
@@ -1114,7 +1096,7 @@ def unifyGrid_radiometer(flight,uni_df,
     for pkl_var in extra_info["unify_varname"]:
         pickle_variables[pkl_var]=globals()[pkl_var]
     pickle_variables["radiometer_extra_info"]=extra_info
-    pickle_variables["corr_comments"]=tb_data_dict["performed_processing"]
+    pickle_variables["performed_processing"]=tb_data_dict["performed_processing"]
     with open(outpath+fname_pickle,'wb') as file:
         pickle.dump(pickle_variables,file,protocol=-1)
     print('Radiometer unifygrid pickle file saved as \n:',outpath+fname_pickle)

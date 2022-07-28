@@ -252,7 +252,7 @@ class CPGN_netCDF():
         print("Dataset assigned")
         
         if instrument=="bahamas":
-            import Measurement_Instruments_QL
+            import measurement_instruments_ql as Measurement_Instruments_QL
             HALO_Devices_cls=Measurement_Instruments_QL.HALO_Devices(cfg_dict)
             bahamas_cls=Measurement_Instruments_QL.BAHAMAS(HALO_Devices_cls)
             bahamas_nc_vars={bahamas_cls.nc_var_names[k]:k \
@@ -278,14 +278,14 @@ class CPGN_netCDF():
                     ds[geo_var].attrs["units"]      = \
                                     bahamas_info["units"].loc[bahamas_geo_var]
             if instrument=="radar":
-                import Processing_Unified_Grid as prcsuni
+                import processing_unified_grid as prcsuni
                 Radar_uni_prcs=prcsuni.Radar_Processing(cfg_dict)
                 # Add radar quality mask    
                 if Performance.str2bool(cfg_dict["add_radar_mask_values"]):
                     ds=Radar_uni_prcs.add_mask_values(ds,bahamas_dict,
                                                       coords_dict)
             elif instrument=="radiometer":
-                import Processing_Unified_Grid as prcsuni
+                import processing_unified_grid as prcsuni
                 Radiometer_uni_prcs=prcsuni.Radiometer_Processing(cfg_dict)
             if not instrument=="dropsondes":
                 calib_cfg="calibrate_"+instrument
@@ -317,6 +317,7 @@ class CPGN_netCDF():
             ds=Radar_uni_prcs.process_radar_data(ds)
         # Radiometer
         if instrument=="radiometer":
+            ds.attrs["performed_processing"]=device_dict["performed_processing"]
             #print("Radiometer ds,",ds)
             if Performance.str2bool(cfg_dict["calibrate_radiometer"]):
                 print("Calibrate Radiometer")
