@@ -466,7 +466,7 @@ class Radar_Processing():
         for var in ds.keys():
             if len(ds[var].shape)==2:
                 print(var," gap filling")
-                self.da_gap_filling(ds[var])
+                ds[var]=self.da_gap_filling(ds[var])
             
         if ds.attrs["performed_processing"].startswith("No further"):
            ds.attrs["performed_processing"]=" Entire data gap filled."
@@ -613,16 +613,17 @@ class Radar_Processing():
         """
         print(da.name)
         da_copy=da.copy()
-        period=2
-        height_levels=1
-        bitmask=da!=int(self.cfg_dict["missing_value"])
-        bitmask=bitmask.astype(int)
+        period=3
+        height_levels=2
+        bitmask=(da[:,:]>-120).astype(int)
+        #bitmask=bitmask.astype(int)
         
         selem=rectangle(period,height_levels)  #For now closing is only performed in time.
                                                #(height_levels=1)
         bitmask=binary_closing(bitmask,selem)
         bitmask=binary_opening(bitmask,selem)
-        varNew=da_copy.where(bitmask).fillna(int(self.cfg_dict["missing_value"]))
+        varNew=da_copy.where(bitmask).fillna(
+                        int(self.cfg_dict["missing_value"]))
         da=varNew
         return da
     
@@ -667,7 +668,8 @@ class Radar_Processing():
             clutter_removal=self.morphological_clutter_removal
         for var in ds.keys():
             if len(ds[var].shape)>=2:
-                    ds[var]=clutter_removal(ds[var])
+                clutter_clear_array=clutter_removal(ds[var])
+                ds[var][:,:]=clutter_clear_array[:,:]
         if ds.attrs["performed_processing"].startswith("No further"):
            ds.attrs["performed_processing"]=" Clutter removed."
         else:

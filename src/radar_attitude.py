@@ -613,7 +613,7 @@ def correct_att_bahamas(radar_fname,version_number,radarOut_dir,
     #   The resulting time offsets are listed in a look up table.
     
     #   Correct time offset and get offset (in seconds) for specific day 
-    import Campaign_Time
+    import campaign_time as Campaign_Time
     Time_cpgn=Campaign_Time.Campaign_Time("EUREC4A",date)
     time_offset = Time_cpgn.look_up_bahamas_time_offs()
 
@@ -825,6 +825,8 @@ def correct_att_bahamas(radar_fname,version_number,radarOut_dir,
                                      var,' under ''var_edit''.')
                 
     # Copy and slightly modify global attributes from radar standard file 
+    import campaign_netcdf as Campaign_netCDF
+    
     CPGN_netCDF=Campaign_netCDF.CPGN_netCDF()
     outfile_ds = CPGN_netCDF.copy_modify_netCDF_global_att(radar_fname,
                                                            outfile_ds,

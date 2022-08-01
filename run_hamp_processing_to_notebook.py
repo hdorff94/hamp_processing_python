@@ -75,7 +75,7 @@ except:
 
 
 #%%
-instruments_to_unify=["radiometer"] # default is bahamas, dropsondes, radar, radiometer.    
+instruments_to_unify=["radar"] # default is bahamas, dropsondes, radar, radiometer.    
 #%%
 # load config files
 cfg=config_handler.Configuration(major_path=airborne_data_importer_path)
@@ -108,7 +108,7 @@ configurations=cfg.return_default_config_dict(major_cfg_name,
                                 contact=contact)
 
 # %% Specify time frame for data conversion
-flight="RF03"
+flight="RF05"
 # % Start date
 start_date =Flight_Dates[campaign][flight]#"20220313" #"20220225"#"20200205"#'20200131';  
 # % End date
@@ -130,22 +130,22 @@ cfg.add_entries_to_config_object(processing_cfg_name,
                                   "date":start_date,
                                   
                                   "flight_date_used":start_date,
-                                  "unify_Grid":True,               # default True
-                                  "fill_gaps":True,
-                                  "correct_attitude":False,          # default False
-                                  "add_radarmask":False,            # default True
-                                  "remove_clutter":True,           # default True
-                                  "remove_side_lobes":True,        # default True
-                                  "remove_radiometer_errors":True, # default True
+                                  "unify_Grid":True,               #0.1 default True
+                                  "fill_gaps":True,                # 0.2
+                                  "correct_attitude":True,          #0.0 default False
+                                  "remove_clutter":True,           # 0.3 default True
+                                  "remove_side_lobes":True,        # 0.4 default True
+                                  "remove_radiometer_errors":False, # default True
+                                  "add_radarmask":True,            # 0.5 default True
+                                  "add_radar_mask_values":False,
                                   
                                   "version":0,
-                                  "subversion":4,
+                                  "subversion":5,
                                   "quicklooks":False,               # default True
                                   
                                   "missing_value":-888,
                                   "fill_value": np.nan,
                                   "altitude_threshold":4800,
-                                  "add_radar_mask_values":False,
                                   "roll_threshold":5})
  #%% Define instruments to unify
 cfg.add_entries_to_config_object(processing_cfg_name,
@@ -160,8 +160,8 @@ cfg.add_entries_to_config_object(processing_cfg_name,
                                   "seasurface_mask":1,
                                   "num_RangeGates_for_sfc":4})
 cfg.add_entries_to_config_object(processing_cfg_name,
-                                 {"calibrate_radiometer":False,
-                                  "calibrate_radar":False})
+                                 {"calibrate_radiometer":False, # 1.x
+                                  "calibrate_radar":False})     # 1.x
 
 #%%
 processing_config_file=cfg.load_config_file(processing_cfg_name)
@@ -198,13 +198,22 @@ HAMP_cls=HAMP(HALO_Devices_cls)
 Radar_cls.open_raw_radar_data(flight,date)
 raw_radar_ds=Radar_cls.raw_radar_ds
 #HAMP_cls.open_raw_hamp_data()
-    
+
+#clutter_radar=Radar_cls.open_version_specific_processed_radar_data(
+#            version="0.1")
+#clean_radar=Radar_cls.open_version_specific_processed_radar_data(
+#            version="0.2")
+        
+
 import halodataplot as halo_data_plotter
 
 Quick_Plotter=halo_data_plotter.Quicklook_Plotter(prcs_cfg_dict)
 Radiometer_Quicklook=halo_data_plotter.Radiometer_Quicklook(prcs_cfg_dict)
 #Radiometer_Quicklook.radiometer_tb_dict=HAMP_cls.raw_hamp_tb_dict
 Radar_Quicklook=halo_data_plotter.Radar_Quicklook(prcs_cfg_dict) 
+#Radar_Quicklook.plot_radar_clutter_comparison(clutter_removal_version="0.2")
+
+#sys.exit()
 perform_raw_quicklooks=False
 if perform_raw_quicklooks:
 #    pass

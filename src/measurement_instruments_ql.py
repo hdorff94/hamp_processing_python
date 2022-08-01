@@ -1039,7 +1039,24 @@ class RADAR(HALO_Devices):
            self.processed_radar_ds=xr.open_dataset(data_file)
        else:
             self.calib_processed_radar_ds=xr.open_dataset(data_file)
-
+    
+    def open_version_specific_processed_radar_data(self,version="undefined"):
+        import campaign_netcdf as Campaign_netCDF
+        nc_path=self.cfg_dict["device_data_path"]+"all_nc/radar_"+\
+        str([*self.cfg_dict["Flight_Dates_used"]][0])
+        data_file=Campaign_netCDF.CPGN_netCDF.identify_newest_version(nc_path)
+        if version=="undefined":
+            # the newest version will be used
+            pass
+        else:
+            data_file_l = list(data_file)
+            data_file_l[-6:-3] = list(version)
+            data_file = "".join(data_file_l)
+            # change the name of the data_File to be read
+            #data_file[-6:-4]=version
+        print("Opened specific version:",data_file)
+        processed_ds=xr.open_dataset(data_file)
+        return processed_ds
     #%% Time stamp adjustments ------------
     def adapt_time_stamp(self,ds):
         if not np.issubdtype(ds.time.values.dtype,np.datetime64) or\

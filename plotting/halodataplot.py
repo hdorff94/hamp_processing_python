@@ -744,6 +744,7 @@ class Radar_Quicklook(Quicklook_Plotter):
     def __init__(self,cfg_dict):
         super(Radar_Quicklook,self).__init__(cfg_dict)
         self.specifier()
+        self.dbz_colorbar="Spectral_r"
         
     def specifier(self):    
         self.instrument="radar"
@@ -762,7 +763,7 @@ class Radar_Quicklook(Quicklook_Plotter):
         C1=ax1.pcolormesh(pd.DatetimeIndex(np.array(raw_radar_ds.time[:])),
             np.array(raw_radar_ds.range[:])/1000,
             np.array(raw_radar_ds["dBZg"][:]),
-            cmap="Spectral_r",vmin=-40,vmax=30) #
+            cmap=self.dbz_colorbar,vmin=-40,vmax=30) #
         cax=raw_radar_fig.add_axes([0.9, 0.675, 0.01, 0.2])
 
         cb = plt.colorbar(C1,cax=cax,
@@ -1072,7 +1073,72 @@ class Radar_Quicklook(Quicklook_Plotter):
             fig_name="calibrated_"+fig_name
         fig.savefig(self.radar_fig_path+fig_name,bbox_inches="tight",dpi=300)
         print("Figure saved as:",self.radar_fig_path+fig_name)
-    
+    def plot_radar_clutter_comparison(self, clutter_removal_version="0.2"):
+        # this function plot two radar attitude corrected reflectivity values.
+        # The one is without clutter removal and hence version 0.1 per default.
+        # The second one needs to be a higher version number. The default is
+        # 0.2.
+        # Initialize classes
+        from measurement_instruments_ql import HALO_Devices, RADAR 
+        HALO_Devices_cls=HALO_Devices(self.cfg_dict)
+        RADAR_cls=RADAR(HALO_Devices_cls)
+        #RADAR_cls.raw_radar_ds=raw_radar_ds.copy()
+        
+        clutter_radar=RADAR_cls.open_version_specific_processed_radar_data(
+            version="0.1")
+        clean_radar=RADAR_cls.open_version_specific_processed_radar_data(
+            version="0.2")
+        
+        fig,axs=plt.subplots(2,1,figsize=(18,12),sharex=True)
+        y=np.array(clutter_radar["height"][:])#/1000
+        #######################################################################
+        #######################################################################
+        ### Processed radar
+        # Radar reflectivity
+        clutter_radar=replace_fill_and_missing_values_to_nan(
+                                clutter_radar,["dBZg"])
+        
+        clean_radar=replace_fill_and_missing_values_to_nan(
+                                clean_radar,["dBZg"])
+        
+        time=pd.DatetimeIndex(np.array(clutter_radar["dBZg"].time[:]))
+        #Plotting
+        C1=axs[0].pcolormesh(time,y,
+                             np.array(clutter_radar["dBZg"][:].T),
+                             vmin=-30,vmax=30,cmap=self.dbz_colorbar)
+        
+        cax1=fig.add_axes([0.9, 0.55, 0.01, 0.35])
+
+        cb = plt.colorbar(C1,cax=cax1)
+                          #orientation='vertical',
+                          #extend="both")
+        cb.set_label('Reflectivity (dBZ)')
+        
+        axs[0].set_xlabel('')
+        axs[0].set_yticks([0,2000,4000,6000,8000,10000,12000])
+        axs[0].set_ylim([0,12000])
+        axs[0].set_yticklabels(["0","2","4","6","8","10","12"])
+        axs[0].set_ylabel("Altitude (km)")
+        
+        C2=axs[1].pcolormesh(time,y,np.array(clean_radar["dBZg"][:].T),
+                         cmap=self.dbz_colorbar,vmin=-30, vmax=30)        
+        axs[1].set_yticks([0,2000,4000,6000,8000,10000,12000])
+        axs[1].set_ylim([0,12000])
+        axs[1].set_yticklabels(["0","2","4","6","8","10","12"])
+        for label in axs[1].get_xticklabels():
+            label.set_rotation(30)
+        #if not np.isnan(hourly):
+        axs[1].xaxis.set_major_locator(mdates.MinuteLocator(byminute=[0]))        
+        #else:
+     #   axs[1].xaxis.set_major_locator(mdates.MinuteLocator(byminute=[0,15,30,45]))
+        axs[1].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))        
+        sns.despine(offset=10)
+        cax2=fig.add_axes([0.9, 0.125, 0.01, 0.35])
+
+        cb2 = plt.colorbar(C2,cax=cax2)
+        cb2.set_label('Reflectivity (dBZ)')
+        
+        
     def plot_radar_attcorr_flight_report_quicklook(self,radar_vars=[],
                                                    hourly=np.nan,
                                                    low_level=False,add_sondes=False):

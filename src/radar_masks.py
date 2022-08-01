@@ -162,7 +162,7 @@ def load_existing_mask(flight_date,cfg_dict,mask_type="land"):
         
     return radar_mask
 
-def make_haloLandMask(flight_dates,outfile,cfg_dict):
+def make_haloLandMask(flight_dates,outfile,cfg_dict,add_sea_ice_mask=False):
     """
     
 
@@ -192,71 +192,101 @@ def make_haloLandMask(flight_dates,outfile,cfg_dict):
     else:
         pass
 
-    # Define dates to use
-    # flightdates_mask = get_campaignDates('2016');
-    performance=Performance.performance()
-    # Read data
-    print("Read landmask")
-    land_mask_ds=xr.open_dataset(ls_path)
+    if add_sea_ice_mask:
+        #% Loop flights
+        for flight in flight_dates:
+            print("Land Sea ice mask for ",flight)
+            
+            #  Get file names
+            f="*"+str(flight)+"*_*"+cfg_dict["version"]+"."+cfg_dict["subversion"]+"*.nc"
+            radar_fpath = glob.glob(cfg_dict["device_data_path"]+"radar_mira/"+f)
+            radar_ds = xr.open_dataset(radar_fpath[0])
+            # Read position data and add it to a dataframe that includes the 
+            # land mask to built
+            #radar_pos= pd.DataFrame(data=np.nan,
+            #            columns=["lat","lon","landmask"],
+            #            index=pd.DatetimeIndex(np.array(radar_ds["time"])))
+        
+            #radar_pos["lat"]      = np.array(radar_ds["IRS_LAT"][:])
+            #radar_pos["lon"]      = np.array(radar_ds["IRS_LON"][:])
+            #radar_pos["landmask"] = np.nan
+            
+            import measurement_instruments_ql
+            # this creates a new surface mask that includes the sea ice cover
+            measurement_instruments_ql.BAHAMAS.add_surface_mask_to_data(
+                radar_ds,cfg_dict,resolution="120s")
+            
+    else:    
+        # Define dates to use
+        # flightdates_mask = get_campaignDates('2016');
+        performance=Performance.performance()
+        # Read data
+        print("Read landmask")
+        land_mask_ds=xr.open_dataset(ls_path)
+        
+        land_mask_array=np.array(land_mask_ds['dst'][:])
+        #  original: 0 indicates land; numbers >0 show distance from coast in
+        #  pixels (??); fill values <0 indicate sea
+        #  1 indicates land; set all sea values to 0
     
-    land_mask_array=np.array(land_mask_ds['dst'][:])
-    #  original: 0 indicates land; numbers >0 show distance from coast in
-    #  pixels (??); fill values <0 indicate sea
-    #  1 indicates land; set all sea values to 0
+        land_mask_array[land_mask_array>1]  = 0
+        land_mask_array[land_mask_array==0] = -1 ##-> added to -1 for sea ice mask
+        land_mask_array[land_mask_array<0]  = 0
     
-    land_mask_array[land_mask_array>1]  = 0
-    land_mask_array[land_mask_array==0] = 1
-    land_mask_array[land_mask_array<0]  = 0
-    
-    lats_ls_mask= np.array(land_mask_ds["lat"][:])
-    lons_ls_mask= np.array(land_mask_ds["lon"][:])                        
-    dst = pd.DataFrame(data=land_mask_array,
+        lats_ls_mask= np.array(land_mask_ds["lat"][:])
+        lons_ls_mask= np.array(land_mask_ds["lon"][:])                        
+        dst = pd.DataFrame(data=land_mask_array,
                        index=lats_ls_mask,
                        columns=lons_ls_mask)
     
-    del land_mask_array
-    #% Preallocate
-    radar_landMask = {}
+        del land_mask_array
+        #% Preallocate
+        radar_landMask = {}
     
-    #% Loop flights
-    for flight in flight_dates:
-        print("Land mask for ",flight)
+        #% Loop flights
+        for flight in flight_dates:
+            print("Land mask for ",flight)
             
         #  Get file names
-        f="*"+str(flight)+"*_*"+cfg_dict["version"]+"."+cfg_dict["subversion"]+"*.nc"
-        radar_fpath = glob.glob(cfg_dict["device_data_path"]+"radar_mira/"+f)
-        radar_ds = xr.open_dataset(radar_fpath[0])
-        # Read position data and add it to a dataframe that includes the 
-        # land mask to built
-        radar_pos= pd.DataFrame(data=np.nan,
+            f="*"+str(flight)+"*_*"+cfg_dict["version"]+"."+cfg_dict["subversion"]+"*.nc"
+            radar_fpath = glob.glob(cfg_dict["device_data_path"]+"radar_mira/"+f)
+            radar_ds = xr.open_dataset(radar_fpath[0])
+            # Read position data and add it to a dataframe that includes the 
+            # land mask to built
+            radar_pos= pd.DataFrame(data=np.nan,
                                   columns=["lat","lon","landmask"],
                                   index=pd.DatetimeIndex(np.array(radar_ds["time"])))
         
-        radar_pos["lat"]      = np.array(radar_ds["IRS_LAT"][:])
-        radar_pos["lon"]      = np.array(radar_ds["IRS_LON"][:])
-        radar_pos["landmask"] = np.nan
+            radar_pos["lat"]      = np.array(radar_ds["IRS_LAT"][:])
+            radar_pos["lon"]      = np.array(radar_ds["IRS_LON"][:])
+            radar_pos["landmask"] = np.nan
             
-        # Loop time
-        for t in range(radar_pos.shape[0]):
+            # Loop time
+            for t in range(radar_pos.shape[0]):
             
-            if not (np.isnan(radar_pos["lat"].iloc[t])) and not (np.isnan(radar_pos["lon"].iloc[t])):
-                #  Calculate differences of aircraft position to land sea mask grid
-                lat_diff = np.array(abs(radar_pos["lat"].iloc[t]-lats_ls_mask))
-                lon_diff = np.array(abs(radar_pos["lon"].iloc[t]-lons_ls_mask))
+                if not (np.isnan(radar_pos["lat"].iloc[t])) and \
+                    not (np.isnan(radar_pos["lon"].iloc[t])):
+                        #  Calculate differences of aircraft position to land sea mask grid
+                    lat_diff = np.array(abs(radar_pos["lat"].iloc[t]-lats_ls_mask))
+                    lon_diff = np.array(abs(radar_pos["lon"].iloc[t]-lons_ls_mask))
                 
-                #  Get indices of closest latitude/longitude grid
-                lon_ind = np.argmin(lon_diff)
-                lat_ind = np.argmin(lat_diff)
+                    #  Get indices of closest latitude/longitude grid
+                    lon_ind = np.argmin(lon_diff)
+                    lat_ind = np.argmin(lat_diff)
             
-                # Copy value into radar_pos dataframe
-                radar_pos["landmask"].iloc[t]=dst.iloc[lat_ind,lon_ind]
-            else:
-                radar_pos["landmask"].iloc[t]=radar_pos["landmask"].iloc[t-1]
-            performance.updt(radar_pos.shape[0],t)                                                             
+                    # Copy value into radar_pos dataframe
+                    radar_pos["landmask"].iloc[t]=dst.iloc[lat_ind,lon_ind]
+                else:
+                    radar_pos["landmask"].iloc[t]=radar_pos["landmask"].iloc[t-1]
+                performance.updt(radar_pos.shape[0],t)                                                             
         # Save land mask of flight as csv
         # If file already exists, overwrite it
         # THIS WAS in append mode BEFORE!
-        landmask_file="Land_Mask_"+str(flight)+".csv"
+        if not add_sea_ice_mask:
+            landmask_file="Land_Mask_"+str(flight)+".csv"
+        else:
+            landmask_file="Land_Sea_Ice_Mask_"+str(flight)+".csv"
+        
         radar_pos.to_csv(path_or_buf=outpath+landmask_file,index=True)
         #sys.exit()
         print("Land mask saved as:", outpath+landmask_file)    
@@ -412,7 +442,7 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
         z_df.loc[noise_mask.loc[noise_mask==1].index]=np.nan        
         # Calculate maximum reflectivity for each profile
         zMax = z_df.max(axis=1)
-        zMax.loc[landmask_df["landmask"]==1.0] = np.nan
+        zMax.loc[landmask_df["landmask"]==-1.0] = np.nan
         av_zMax = zMax.mean()
         std_zMax = zMax.std()
         # Preallocate
@@ -427,12 +457,12 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
         # Loop time
         print("Check for surface values")
         for j in range(hSurf.shape[0]):
-            # Check if landmask is 1 
+            # Check if landmask is -1 
             # and at least one measurement in radar profile
             # and profile's reflectivity maximum is larger 30 dBZ 
             # %%%%%than average zMaximum - 1 standard deviation
             # !change this value after radar data has been recalculated!
-            if landmask_df["landmask"].iloc[j]==1 and not \
+            if landmask_df["landmask"].iloc[j]==-1 and not \
                 ind_no_dbz_profile.iloc[j] and \
                     zMax.iloc[j]>=30: #av_zMax-std_zMax
                 indZMax[j] = z_df[j,:].idxmax(axis=0)
@@ -450,7 +480,9 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
         hSurf_filled_nan = pd.Series(data=np.nan,index=z_df.index);
         # Fill gaps of surface height and write into time vector
         # accordingly
-        hSurf_filled_nan.loc[ind_first:ind_last] = hSurf.loc[ind_first:ind_last].interpolate(method="barycentric",limit=20)
+        hSurf_filled_nan.loc[ind_first:ind_last] = \
+            hSurf.loc[ind_first:ind_last].interpolate(
+                method="barycentric",limit=20)
     
         # Threshold of 30 dBZ worked for NAWDEX but not for NARVAL-II, to
         # be sure, just discard the lowest three to four range gates
@@ -474,13 +506,13 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
         print("Fill surface mask from zero to height of surface +2 extra levels")
         for j in range(ind_hSurf.shape[0]):
             # If time step is over land and surface height is not nan
-            if (landmask_df["landmask"].iloc[j]==1) and not (np.isnan(hSurf_filled_nan[j])):
+            if (landmask_df["landmask"].iloc[j]==-1) and not (np.isnan(hSurf_filled_nan[j])):
                 # Find range gate in which surface height falls in
                 diff_hSurf = abs(hSurf_filled_nan[j]-np.array(radar_ds["height"]))
                 ind_hSurf[j] = np.argmin(diff_hSurf)
                 # Write one to surface mask from bottom to surface height
                 # plus two range gates (just to be sure)
-                surface_mask.iloc[j,0:int(ind_hSurf[j])+2] = 1
+                surface_mask.iloc[j,0:int(ind_hSurf[j])+2] = -1
             performance.updt(ind_hSurf.shape[0],j)        
         
         if show_quicklook:
