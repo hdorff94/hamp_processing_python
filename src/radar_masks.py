@@ -140,6 +140,8 @@ def load_existing_mask(flight_date,cfg_dict,mask_type="land"):
     mask_path=cfg_dict["radar_mask_path"]
     if mask_type=="land":
         mask_name="Land_Mask_"
+        if cfg_dict["campaign"]=="HALO_AC3":
+            mask_name="Land_Sea_Ice_Mask_"
     elif mask_type=="noise":
         mask_name="Noise_Mask_"
     elif mask_type=="calibration":
@@ -213,7 +215,7 @@ def make_haloLandMask(flight_dates,outfile,cfg_dict,add_sea_ice_mask=False):
             
             import measurement_instruments_ql
             # this creates a new surface mask that includes the sea ice cover
-            measurement_instruments_ql.BAHAMAS.add_surface_mask_to_data(
+            radar_pos=measurement_instruments_ql.BAHAMAS.add_surface_mask_to_data(
                 radar_ds,cfg_dict,resolution="120s")
             
     else:    
@@ -279,17 +281,19 @@ def make_haloLandMask(flight_dates,outfile,cfg_dict,add_sea_ice_mask=False):
                 else:
                     radar_pos["landmask"].iloc[t]=radar_pos["landmask"].iloc[t-1]
                 performance.updt(radar_pos.shape[0],t)                                                             
-        # Save land mask of flight as csv
-        # If file already exists, overwrite it
-        # THIS WAS in append mode BEFORE!
-        if not add_sea_ice_mask:
-            landmask_file="Land_Mask_"+str(flight)+".csv"
-        else:
-            landmask_file="Land_Sea_Ice_Mask_"+str(flight)+".csv"
+    # Save land mask of flight as csv
+    # If file already exists, overwrite it
+    # THIS WAS in append mode BEFORE!
+    radar_pos=radar_pos.resample("1s").mean()
+    radar_pos=radar_pos.bfill()
+    if not add_sea_ice_mask:
+        landmask_file="Land_Mask_"+str(flight)+".csv"
+    else:
+        landmask_file="Land_Sea_Ice_Mask_"+str(flight)+".csv"
         
-        radar_pos.to_csv(path_or_buf=outpath+landmask_file,index=True)
-        #sys.exit()
-        print("Land mask saved as:", outpath+landmask_file)    
+    radar_pos.to_csv(path_or_buf=outpath+landmask_file,index=True)
+    #sys.exit()
+    print("Land mask saved as:", outpath+landmask_file)    
 
 
 #%%        
@@ -402,7 +406,10 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
                             "surface mask.")
         
         # load landmask for given day
-        landmask_df=pd.read_csv(outpath+"Land_Mask_"+str(flight)+".csv")
+        landmask_filename=outpath+"Land_Mask_"+str(flight)+".csv"
+        if cfg_dict["campaign"]=="HALO_AC3":
+            landmask_filename=outpath+"Land_Sea_Ice_Mask_"+str(flight)+".csv"
+        landmask_df=pd.read_csv(landmask_filename)
         landmask_df.index=pd.DatetimeIndex(landmask_df["Unnamed: 0"])
         del landmask_df["Unnamed: 0"]
         
@@ -430,7 +437,7 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
         # the radar has not been operating during these times...
         landmask_df.iloc[0:120]   = np.nan
         landmask_df.iloc[-120:-1] = np.nan
-        
+        landmask_df=landmask_df.reindex(z_df.index)
         # Remove noise and set to nan
         noise_file=outpath+"Noise_Mask_"+str(flight)+".csv"
         if os.path.exists(noise_file):
@@ -439,10 +446,15 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
             noise_mask=pd.Series(noise_mask.iloc[:,1])
         else:
             raise Exception("no dBZ is calculated")
+        
+        mask_arg="landmask"
+        if cfg_dict["campaign"]=="HALO_AC3":
+            mask_arg="sea_ice"
         z_df.loc[noise_mask.loc[noise_mask==1].index]=np.nan        
         # Calculate maximum reflectivity for each profile
         zMax = z_df.max(axis=1)
-        zMax.loc[landmask_df["landmask"]==-1.0] = np.nan
+        zMax.loc[landmask_df[mask_arg].loc[landmask_df[mask_arg]==-0.1].index]\
+                = np.nan
         av_zMax = zMax.mean()
         std_zMax = zMax.std()
         # Preallocate
@@ -462,7 +474,7 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
             # and profile's reflectivity maximum is larger 30 dBZ 
             # %%%%%than average zMaximum - 1 standard deviation
             # !change this value after radar data has been recalculated!
-            if landmask_df["landmask"].iloc[j]==-1 and not \
+            if landmask_df[mask_arg].iloc[j]==-0.1 and not \
                 ind_no_dbz_profile.iloc[j] and \
                     zMax.iloc[j]>=30: #av_zMax-std_zMax
                 indZMax[j] = z_df[j,:].idxmax(axis=0)
@@ -490,7 +502,7 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
         
         
         # Remove time steps over ocean and with empty profiles
-        hSurf_filled_nan.loc[landmask_df["landmask"]==np.nan] = np.nan
+        hSurf_filled_nan.loc[landmask_df[mask_arg]==np.nan] = np.nan
         hSurf_filled_nan[ind_no_dbz_profile] = np.nan
             
         # Generate empty array for surface mask
@@ -506,7 +518,7 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
         print("Fill surface mask from zero to height of surface +2 extra levels")
         for j in range(ind_hSurf.shape[0]):
             # If time step is over land and surface height is not nan
-            if (landmask_df["landmask"].iloc[j]==-1) and not (np.isnan(hSurf_filled_nan[j])):
+            if (landmask_df[mask_arg].iloc[j]==-1) and not (np.isnan(hSurf_filled_nan[j])):
                 # Find range gate in which surface height falls in
                 diff_hSurf = abs(hSurf_filled_nan[j]-np.array(radar_ds["height"]))
                 ind_hSurf[j] = np.argmin(diff_hSurf)
@@ -593,7 +605,14 @@ def make_radar_sea_surface_mask(flightdates, outfile, cfg_dict):
         
         # Load mask data
         # load landmask for given day
-        landmask_df=pd.read_csv(outpath+"Land_Mask_"+str(flight)+".csv")
+        if not cfg_dict["campaign"]=="HALO_AC3":
+            landmask_df=pd.read_csv(outpath+"Land_Mask_"+str(flight)+".csv")
+            mask_arg="landmask"
+            mask_value=1
+        else:
+            landmask_df=pd.read_csv(outpath+"Land_Sea_Ice_Mask_"+str(flight)+".csv")
+            mask_arg="sea_ice"
+            mask_value=-0.1
         landmask_df.index=pd.DatetimeIndex(landmask_df["Unnamed: 0"])
         del landmask_df["Unnamed: 0"]
         
@@ -617,7 +636,7 @@ def make_radar_sea_surface_mask(flightdates, outfile, cfg_dict):
         # Set lowest four range gates to sea surface if there was a radar
         # signal in any of them and HALO was not over land
         sea_surf_index=ind_no_SeaSurf[ind_no_SeaSurf==False].index
-        no_land_index=landmask_df[landmask_df["landmask"]!=1].index
+        no_land_index=landmask_df[landmask_df[mask_arg]!=mask_value].index
         
         intersection_index=no_land_index.intersection(sea_surf_index)
         sea_surface_mask.loc[intersection_index,0:30*(range_gates-1)] = 1        
@@ -634,11 +653,11 @@ def make_radar_info_mask(flightdates,outfile,cfg_dict):
     
     mask_path =  cfg_dict["radar_mask_path"]#+'Auxiliary/Masks/'    
     # Load data
-    key = {0:'good',
-           1:'noise',
-           2:'surface',
-           3:'sea',
-           4:'radar calibration'}
+    key = {'0':'good',
+           '0-1':'sea_ice_cover',
+           '.1':'surface',
+           '3':'noise',
+           '4':'radar calibration'}
     
     #radarInfoMask = 
     
@@ -676,7 +695,20 @@ def make_radar_info_mask(flightdates,outfile,cfg_dict):
             pass
         
         try:
-            sea_mask_df=load_existing_mask(flight,cfg_dict,mask_type="sea_surface")
+            sea_mask_df=load_existing_mask(flight,cfg_dict,
+                                           mask_type="sea_surface")
+            # this mask is just binary representing sea surface in the lowest 
+            # range gates defined by num_of_range_gates in cfg_dict
+            
+            if cfg_dict["campaign"]=="HALO_AC3":
+                performance_cls=Performance.performance()
+                sea_ice_mask=load_existing_mask(flight,cfg_dict,
+                                                mask_type="land")
+                sea_ice_mask=sea_ice_mask.reindex(sea_mask_df.index)    
+                for t in range(sea_ice_mask.shape[0]):
+                    sea_mask_df.iloc[t,:]=sea_mask_df.iloc[t,:]*\
+                        sea_ice_mask["sea_ice"].iloc[t]
+                    performance_cls.updt(sea_ice_mask.shape[0],t)
             radarInfoMask = np.zeros([sea_mask_df.shape[0],
                                       radar_ds["height"].shape[0]])
             
@@ -701,9 +733,10 @@ def make_radar_info_mask(flightdates,outfile,cfg_dict):
             raise Exception("No mask file found")
         else:
             if surface_mask_df is not None:
-                radarInfoMask[np.array(~surface_mask_df.isnull())] = 2
+                radarInfoMask[np.array(~surface_mask_df.isnull())] = -0.1
             if sea_mask_df is not None:
-                radarInfoMask[np.array(~sea_mask_df.isnull())] = 3
+                radarInfoMask[:,0:int(cfg_dict["num_rangegates_for_sfc"])-1] =\
+                    sea_mask_df.iloc[:,0:int(cfg_dict["num_rangegates_for_sfc"])-1]
             if calibration_mask_df is not None:
                 radarInfoMask = pd.DataFrame(data=radarInfoMask,
                                              columns=radar_ds["height"],
@@ -713,12 +746,11 @@ def make_radar_info_mask(flightdates,outfile,cfg_dict):
             
             # make noise at last to overwrite all other masks
             if noise_mask_df is not None:
-                radarInfoMask.loc[noise_mask_df[noise_mask_df==1].index,:] = 1
+                radarInfoMask.loc[noise_mask_df[noise_mask_df==1].index,:] = 3
         radarInfoMask["key"]=np.nan
-        radarInfoMask["key"].iloc[0:5]=np.arange(1,6)
+        radarInfoMask["key"].iloc[0:5]=[*key.keys()]
         radarInfoMask["mask_value"]=np.nan
-        radarInfoMask["mask_value"].iloc[0:5]=['good','noise','surface',
-                                               'sea','radar calibration']
+        radarInfoMask["mask_value"].iloc[0:5]=[*key.values()]
         # % Plot and save figure with radar mask if specified in varargin
         # if nargin>2 && strcmp(varargin{1},'figures')
             
@@ -790,9 +822,13 @@ def run_make_masks(flightdates, cfg_dict):
     # flightdates = get_campaignDates(campaign);
     
     # Land Mask
+    add_sea_ice_mask=False
+    if cfg_dict["campaign"]=="HALO_AC3":
+        add_sea_ice_mask=True
     if Performance.str2bool(cfg_dict["land_mask"]):
         print('Generating land sea mask for the given flights:',flightdates)
-        make_haloLandMask(flightdates,outfile,cfg_dict)
+        make_haloLandMask(flightdates,outfile,cfg_dict,
+                          add_sea_ice_mask=add_sea_ice_mask)
     else:
         print('Skipping land sea mask...')
     

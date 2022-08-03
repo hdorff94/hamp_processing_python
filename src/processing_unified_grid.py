@@ -587,6 +587,8 @@ class Radar_Processing():
                 ds[var]=ds[var].where(~side_lobe_mask).fillna(\
                                             float(self.cfg_dict["fill_value"]))
         
+        ds.attrs["performed_processing"]=ds.attrs["performed_processing"]+\
+            " Side lobes removed."
         # Add side lobe information to radar mask
         if Performance.str2bool(self.cfg_dict["add_radar_mask_values"]):
             ds["radar_flag"]=ds["radar_flag"].where(~side_lobe_mask).fillna(5)
@@ -673,7 +675,8 @@ class Radar_Processing():
         if ds.attrs["performed_processing"].startswith("No further"):
            ds.attrs["performed_processing"]=" Clutter removed."
         else:
-            ds.attrs["performed_processing"]=ds.attrs["performed_processing"]+" Clutter removed."            
+            ds.attrs["performed_processing"]=ds.attrs["performed_processing"]+\
+                " Clutter removed."            
         return ds
     
     def apply_radar_flags(self):
@@ -703,12 +706,12 @@ class Radar_Processing():
         #                                              value=np.nan)
         #    reflectivity_factor=reflectivity_factor+radar_flag
         #    ldr_factor=ldr_factor+radar_flag
-        if self.processed_radar.attrs["performed_processing"].startswith("No further"):
-           self.processed_radar.attrs["performed_processing"]=" Clutter removed."
-        else:
-           self.processed_radar.attrs["performed_processing"]=\
-               self.processed_radar.attrs["performed_processing"]+\
-                   " Radar data flagged."            
+        #if self.processed_radar.attrs["performed_processing"].startswith("No further"):
+        #   self.processed_radar.attrs["performed_processing"]=" Clutter removed."
+        #else:
+        #   self.processed_radar.attrs["performed_processing"]=\
+        #       self.processed_radar.attrs["performed_processing"]+\
+        #           " Radar data flagged."            
         
         print("Radar data flagged")
         return self.processed_radar        

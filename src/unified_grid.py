@@ -1153,7 +1153,7 @@ def run_unify_grid(flightdates_use,cfg_dict):
     radiometer_vars = ['183','11990','KV']
 
     # Radar
-    radar_vars = ['dBZg','Zg','LDRg','RMSg','VELg','SNRg']
+    radar_vars = ['dBZg','Zg','Ze','dBZe','LDRg','RMSg','VELg','SNRg']
 
     # Dropsondes
     sonde_vars = ['pres','tdry','dp','rh','u_wind','v_wind','wspd','wdir',

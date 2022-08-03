@@ -563,7 +563,7 @@ class BAHAMAS(HALO_Devices):
             else:
                 pass
             performance.updt(bah_df.shape[0],t)                                                             
-    
+        sea_ice_mask=sea_ice_mask/100
         sea_ice_mask=sea_ice_mask.fillna(0)
         print("check for land surface")
         # Now add land mask
@@ -1044,18 +1044,26 @@ class RADAR(HALO_Devices):
         import campaign_netcdf as Campaign_netCDF
         nc_path=self.cfg_dict["device_data_path"]+"all_nc/radar_"+\
         str([*self.cfg_dict["Flight_Dates_used"]][0])
-        data_file=Campaign_netCDF.CPGN_netCDF.identify_newest_version(nc_path)
+        default_data_file=Campaign_netCDF.CPGN_netCDF.identify_newest_version(nc_path)
         if version=="undefined":
             # the newest version will be used
-            pass
+            data_file=default_data_file
         else:
-            data_file_l = list(data_file)
+            data_file_l = list(default_data_file)
             data_file_l[-6:-3] = list(version)
             data_file = "".join(data_file_l)
             # change the name of the data_File to be read
             #data_file[-6:-4]=version
-        print("Opened specific version:",data_file)
-        processed_ds=xr.open_dataset(data_file)
+        try:
+            print("Opened specific version:",data_file)
+            processed_ds=xr.open_dataset(data_file)
+        
+        except FileNotFoundError as error:
+            print(error)
+            print("The version you have chosen is not existent already.",
+                                "the last newest version will be addded.")
+            processed_ds=xr.open_dataset(default_data_file)
+            
         return processed_ds
     #%% Time stamp adjustments ------------
     def adapt_time_stamp(self,ds):
@@ -1255,7 +1263,7 @@ class SEA_ICE():
     def __init__(self,cfg_dict):
         self.cfg_dict=cfg_dict
     def open_sea_ice_ds(self):
-        self.sea_ice_local_path=self.cfg_dict["campaign_path"]+"sea_ice/"
+        self.sea_ice_local_path=self.cfg_dict["device_data_path"]+"sea_ice/"
         if not os.path.exists(self.sea_ice_local_path):
             os.makedirs(self.sea_ice_local_path)
         

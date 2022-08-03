@@ -643,7 +643,7 @@ def correct_att_bahamas(radar_fname,version_number,radarOut_dir,
     var_copy = ['nfft','prf','NyquistVelocity','nave','zrg','rg0','drg','lambda',
                 'tpow','npw1','npw2','cpw1','cpw2','grst']
 
-    var_edit = ['SNRg','VELg','RMSg','LDRg','HSDco','HSDcx','Zg']
+    var_edit = ['SNRg','VELg','RMSg','LDRg','HSDco','HSDcx','Zg','Ze']
 
     # OLD NAMES---> To be ignored 
     # % varBahamas = {'P','RH','abshum','mixratio','speed_air','T','Td','theta',...
@@ -911,7 +911,7 @@ def correct_att_bahamas(radar_fname,version_number,radarOut_dir,
         
     else:
         print('No Reflectivity Z found. Skipping dBZ calculation...')
-
+        
     #%% Write dBZ to new radar file
     #schemaCopy = ncinfo(outfile,'Zg');
     #% Change name
@@ -932,6 +932,44 @@ def correct_att_bahamas(radar_fname,version_number,radarOut_dir,
     outfile_ds["dBZg"]= dBZg_ds
     var_edit.append("dBZg")
     
+    ###########################################################################
+    ## Temporary Ze
+    if 'Ze' in var_edit:
+        # Zg(Zg==missingvalue) = -Inf;
+        # Calculate dBZ
+        # using the emath extension to get complexe values and -inf instead of nan 
+        dBZe = np.array(10*np.emath.log10(radar_data_corr['Ze'][:]))
+        dBZe = dBZe.astype(np.float32)
+        #% Only keep real part of array (imaginary numbers were created when
+        #% taking log10 of -Inf: log10(-Inf) = Inf +      1.36437635384184i)
+        dBZe = np.real(dBZe)
+        #% And convert positive infinity back to negative infinity
+        dBZe = np.where(dBZe==np.inf,-np.inf,dBZe)
+        #%% Write dBZ to new radar file
+        #schemaCopy = ncinfo(outfile,'Zg');
+        #% Change name
+        try:
+            dBZe_ds=xr.DataArray(dBZe.astype(np.float32).T,
+                         coords=outfile_ds.coords,
+                         dims=outfile_ds.dims).T
+        except:
+            dBZe_ds=xr.DataArray(dBZe.astype(np.float32),
+                         coords=outfile_ds.coords,
+                         dims=outfile_ds.dims).T
+        dBZe_ds.attrs={"long_name"  :'Reflectivity dBZe (Hydrometeors)',
+                   "units"      :' ',
+                   "yrange"     : [np.nanmin(np.nanmin(dBZe)),
+                                   np.nanmax(np.nanmax(dBZe))]}
+    
+        #% Write data to outfile
+        outfile_ds["dBZe"]= dBZg_ds
+        var_edit.append("dBZe")
+        print("Ze and dBZe added to the files.")
+        
+    else:
+        print('No Reflectivity Z found. Skipping dBZ calculation...')
+        
+    ###########################################################################
     LDRg = np.array(10*np.emath.log10(radar_data_corr['LDRg'][:]))
     LDRg = np.real(LDRg)
     LDRg=np.where(LDRg==np.inf,-np.inf,LDRg)

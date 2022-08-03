@@ -315,6 +315,9 @@ class CPGN_netCDF():
         # Radar
         if instrument=="radar":
             ds=Radar_uni_prcs.process_radar_data(ds)
+            if Performance.str2bool(cfg_dict["add_radar_mask_values"]):
+               ds.attrs["performed_processing"]=ds.attrs["performed_processing"]+\
+                   " Radar measurements are provided with masks."
         # Radiometer
         if instrument=="radiometer":
             ds.attrs["performed_processing"]=device_dict["performed_processing"]

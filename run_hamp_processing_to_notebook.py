@@ -75,7 +75,7 @@ except:
 
 
 #%%
-instruments_to_unify=["radar"] # default is bahamas, dropsondes, radar, radiometer.    
+instruments_to_unify=["radar"]#,"radar"] # default is bahamas, dropsondes, radar, radiometer.    
 #%%
 # load config files
 cfg=config_handler.Configuration(major_path=airborne_data_importer_path)
@@ -108,7 +108,7 @@ configurations=cfg.return_default_config_dict(major_cfg_name,
                                 contact=contact)
 
 # %% Specify time frame for data conversion
-flight="RF05"
+flight="RF03"
 # % Start date
 start_date =Flight_Dates[campaign][flight]#"20220313" #"20220225"#"20200205"#'20200131';  
 # % End date
@@ -125,28 +125,27 @@ end_date = Flight_Dates[campaign][flight]#"20220313"#"20220225"#"20200205"#'2020
 #  Set threshold for roll angle to discard radiometer data
 
 cfg.add_entries_to_config_object(processing_cfg_name,
-                                 {"t1":start_date,
-                                  "t2":end_date,
-                                  "date":start_date,
+                        {"t1":start_date,"t2":end_date,
+                         "date":start_date,"flight_date_used":start_date,
+                         "unify_Grid":True,               #0.1 default True
+                         "correct_attitude":False,         #0.1 default False
+                                                          # as otherwise it is recalculated 
+                                                          # every time although already existent
+                         "fill_gaps":False,                # 0.2
+                         "remove_clutter":False,           # 0.3 default True
+                         "remove_side_lobes":False,        # 0.4 default True
+                         "remove_radiometer_errors":False, # default True
+                         "add_radarmask":False,            # 0.5 default True
+                         "add_radar_mask_values":False,    # if false mask 
+                                                                   # is not added to the data
                                   
-                                  "flight_date_used":start_date,
-                                  "unify_Grid":True,               #0.1 default True
-                                  "fill_gaps":True,                # 0.2
-                                  "correct_attitude":True,          #0.0 default False
-                                  "remove_clutter":True,           # 0.3 default True
-                                  "remove_side_lobes":True,        # 0.4 default True
-                                  "remove_radiometer_errors":False, # default True
-                                  "add_radarmask":True,            # 0.5 default True
-                                  "add_radar_mask_values":False,
-                                  
-                                  "version":0,
-                                  "subversion":5,
-                                  "quicklooks":False,               # default True
-                                  
-                                  "missing_value":-888,
-                                  "fill_value": np.nan,
-                                  "altitude_threshold":4800,
-                                  "roll_threshold":5})
+                         "version":0,
+                         "subversion":1,
+                         "quicklooks":False,               # default True
+                         "missing_value":-888,
+                         "fill_value": np.nan,
+                         "altitude_threshold":4800,
+                         "roll_threshold":5})
  #%% Define instruments to unify
 cfg.add_entries_to_config_object(processing_cfg_name,
                     {"instruments_to_unify":instruments_to_unify})
