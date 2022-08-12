@@ -450,11 +450,12 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
         mask_arg="landmask"
         if cfg_dict["campaign"]=="HALO_AC3":
             mask_arg="sea_ice"
+            mask_value=-0.1
         z_df.loc[noise_mask.loc[noise_mask==1].index]=np.nan        
         # Calculate maximum reflectivity for each profile
         zMax = z_df.max(axis=1)
-        zMax.loc[landmask_df[mask_arg].loc[landmask_df[mask_arg]==-0.1].index]\
-                = np.nan
+        #zMax.loc[landmask_df[mask_arg].loc[landmask_df[mask_arg]==-0.1].index]\
+        #        = np.nan ---> has this to be commented out?
         av_zMax = zMax.mean()
         std_zMax = zMax.std()
         # Preallocate
@@ -474,11 +475,11 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
             # and profile's reflectivity maximum is larger 30 dBZ 
             # %%%%%than average zMaximum - 1 standard deviation
             # !change this value after radar data has been recalculated!
-            if landmask_df[mask_arg].iloc[j]==-0.1 and not \
+            if landmask_df[mask_arg].iloc[j]==mask_value and not \
                 ind_no_dbz_profile.iloc[j] and \
                     zMax.iloc[j]>=30: #av_zMax-std_zMax
-                indZMax[j] = z_df[j,:].idxmax(axis=0)
-                hSurf[j] = height[indZMax[j]]
+                indZMax.iloc[j] = z_df.iloc[j,:].idxmax()
+                hSurf.iloc[j] = height[int(indZMax.iloc[j])]
             performance.updt(hSurf.shape[0],j)
         #  Fill gaps in surface height
             
@@ -518,13 +519,14 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
         print("Fill surface mask from zero to height of surface +2 extra levels")
         for j in range(ind_hSurf.shape[0]):
             # If time step is over land and surface height is not nan
-            if (landmask_df[mask_arg].iloc[j]==-1) and not (np.isnan(hSurf_filled_nan[j])):
+            if (landmask_df[mask_arg].iloc[j]==mask_value) \
+                and not (np.isnan(hSurf_filled_nan[j])):
                 # Find range gate in which surface height falls in
                 diff_hSurf = abs(hSurf_filled_nan[j]-np.array(radar_ds["height"]))
                 ind_hSurf[j] = np.argmin(diff_hSurf)
                 # Write one to surface mask from bottom to surface height
                 # plus two range gates (just to be sure)
-                surface_mask.iloc[j,0:int(ind_hSurf[j])+2] = -1
+                surface_mask.iloc[j,0:int(ind_hSurf[j])+2] = mask_value
             performance.updt(ind_hSurf.shape[0],j)        
         
         if show_quicklook:

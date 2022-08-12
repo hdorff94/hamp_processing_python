@@ -625,7 +625,8 @@ class Radiometer_Errors():
         #self.uni_path= self.cfg_dict["campaign_path"]+"Flight_Data/"+\
         #                self.cfg_dict["campaign"]+"all_pickle/"
         
-        flag_file    = "error_flag_radiometer.pkl"
+        flag_file    = "error_flag_radiometer_"+\
+            str(self.cfg_dict["Flight_Dates_used"][0])+".pkl"
        
         if os.path.exists(self.uni_path+flag_file):
             with open(self.uni_path+flag_file,"rb") as flag_f:
@@ -757,7 +758,8 @@ class Radiometer_Errors():
         Check if flag pkl file exists, otherwise create and or add entries
         """
         
-        flag_file    = "error_flag_radiometer.pkl"
+        flag_file    = "error_flag_radiometer_"+\
+            str(self.cfg_dict["Flight_Dates_used"][0])+".pkl"
        
         if os.path.exists(self.uni_path+flag_file):
             with open(self.uni_path+flag_file,"rb") as flag_f:

@@ -962,7 +962,7 @@ def correct_att_bahamas(radar_fname,version_number,radarOut_dir,
                                    np.nanmax(np.nanmax(dBZe))]}
     
         #% Write data to outfile
-        outfile_ds["dBZe"]= dBZg_ds
+        outfile_ds["dBZe"]= dBZe_ds
         var_edit.append("dBZe")
         print("Ze and dBZe added to the files.")
         

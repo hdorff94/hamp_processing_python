@@ -43,8 +43,8 @@ try:
 except:
     print("Module Flight Campaign is not listed in the path",
           "Flights need to be defined manually.")
-    Flight_Dates={}
-    Flight_Dates["EUREC4A"]={"RF01":"20200119","RF02":"20200122",
+Flight_Dates={}
+Flight_Dates["EUREC4A"]={"RF01":"20200119","RF02":"20200122",
                              "RF03":"20200124","RF04":"20200126",
                              "RF05":"20200128","RF06":"20200130",
                              "RF07":"20200131","RF08":"20200202",
@@ -53,7 +53,7 @@ except:
                              "RF13":"20200213","RF14":"20200215",
                              "RF15":"20200218"}
     
-    Flight_Dates["HALO_AC3"]={"RF00":"20220225",
+Flight_Dates["HALO_AC3"]={"RF00":"20220225",
                           "RF01":"20220311", # if this is the transfer flight
                           "RF02":"20220312",
                           "RF03":"20220313",
@@ -75,7 +75,11 @@ except:
 
 
 #%%
-instruments_to_unify=["radar"]#,"radar"] # default is bahamas, dropsondes, radar, radiometer.    
+instruments_to_unify=[#"bahamas",
+                      #"dropsondes"
+                      "radar",
+                      "radiometer",#"radar"] # default is bahamas, dropsondes, radar, radiometer.
+                      ]
 #%%
 # load config files
 cfg=config_handler.Configuration(major_path=airborne_data_importer_path)
@@ -108,7 +112,7 @@ configurations=cfg.return_default_config_dict(major_cfg_name,
                                 contact=contact)
 
 # %% Specify time frame for data conversion
-flight="RF03"
+flight="RF02"
 # % Start date
 start_date =Flight_Dates[campaign][flight]#"20220313" #"20220225"#"20200205"#'20200131';  
 # % End date
@@ -128,11 +132,11 @@ cfg.add_entries_to_config_object(processing_cfg_name,
                         {"t1":start_date,"t2":end_date,
                          "date":start_date,"flight_date_used":start_date,
                          "unify_Grid":True,               #0.1 default True
-                         "correct_attitude":False,         #0.1 default False
+                         "correct_attitude":True,         #0.1 default False
                                                           # as otherwise it is recalculated 
                                                           # every time although already existent
-                         "fill_gaps":False,                # 0.2
-                         "remove_clutter":False,           # 0.3 default True
+                         "fill_gaps":True,                # 0.2
+                         "remove_clutter":True,           # 0.3 default True
                          "remove_side_lobes":False,        # 0.4 default True
                          "remove_radiometer_errors":False, # default True
                          "add_radarmask":False,            # 0.5 default True
@@ -140,7 +144,7 @@ cfg.add_entries_to_config_object(processing_cfg_name,
                                                                    # is not added to the data
                                   
                          "version":0,
-                         "subversion":1,
+                         "subversion":2,
                          "quicklooks":False,               # default True
                          "missing_value":-888,
                          "fill_value": np.nan,
