@@ -469,6 +469,8 @@ class Radar_Processing():
     def fill_gaps(self,ds):
         for var in ds.keys():
             if len(ds[var].shape)==2:
+                if var=="radar_flag":
+                    continue
                 print(var," gap filling")
                 ds[var]=self.da_gap_filling(ds[var])
             
@@ -536,6 +538,8 @@ class Radar_Processing():
                             columns=ds["height"])
         radar_mask=radar_mask.iloc[:,0:len(ds["height"])]
         radar_mask_uni.loc[radar_mask.index]=radar_mask
+        # interpolate to get rid off single grid values
+        radar_mask_uni=radar_mask_uni.interpolate(method="nearest",limit=2)
         radar_mask_info={"mask_values":mask_values}
         ds["radar_flag"]=xr.DataArray(data=radar_mask_uni,
                                       dims=coords_dict.keys())
@@ -586,16 +590,17 @@ class Radar_Processing():
         # Combine both to side lobe mask
         side_lobe_mask= geo_mask & roll_ind_mat
         for var in ds.keys():
-            if len(ds[var].shape)>1 and not var=="radar_mask":
+            if len(ds[var].shape)>1 and not var=="radar_flag":
                 print(var)
-                ds[var]=ds[var].where(~side_lobe_mask).fillna(\
-                                            float(self.cfg_dict["fill_value"]))
-        
+                ds[var]=ds[var].where(~side_lobe_mask,float(self.cfg_dict["fill_value"]))
+                #ds[var]=ds[var].where(~side_lobe_mask).fillna(\
+                #                            float(self.cfg_dict["fill_value"]))
+                
         ds.attrs["performed_processing"]=ds.attrs["performed_processing"]+\
             " Side lobes removed."
         # Add side lobe information to radar mask
         if Performance.str2bool(self.cfg_dict["add_radar_mask_values"]):
-            ds["radar_flag"]=ds["radar_flag"].where(~side_lobe_mask).fillna(5)
+            ds["radar_flag"]=ds["radar_flag"].where(~side_lobe_mask,5)
             # Add mask value to attributes
             mask_value_list=ds["radar_flag"].mask_values
             mask_value_list.append('5.0 : side lobes removed')
@@ -674,6 +679,8 @@ class Radar_Processing():
             clutter_removal=self.morphological_clutter_removal
         for var in ds.keys():
             if len(ds[var].shape)>=2:
+                if var=="radar_flag":
+                    continue
                 clutter_clear_array=clutter_removal(ds[var])
                 ds[var][:,:]=clutter_clear_array[:,:]
         if ds.attrs["performed_processing"].startswith("No further"):

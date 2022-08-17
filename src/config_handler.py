@@ -52,7 +52,7 @@ class Configuration():
                   "is created!")
     
     def check_if_config_file_exists(self,name):
-        if not os.path.isfile(name):
+        if not os.path.isfile(self.major_path+name):
             self.create_new_config_file(file_name=name)
             file_exists=True
         else:
@@ -71,7 +71,7 @@ class Configuration():
             self.create_new_config_file(file_name=name,campaign=campaign)
         elif arg==2:
             print("Load config file")
-            self.load_config_file(self.path,name)
+            self.load_config_file(self.major_path,name)
         return self
     def add_entries_to_config_object(self,config_file_name,entry_dict):
         """

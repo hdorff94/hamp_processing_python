@@ -185,7 +185,7 @@ def make_haloLandMask(flight_dates,outfile,cfg_dict,add_sea_ice_mask=False):
     # Set file paths
     outpath = cfg_dict["radar_mask_path"]#cfg_dict["data_path"]+'Auxiliary/Masks/'
     ls_path = cfg_dict["data_path"]+'Auxiliary/lsmask-world8-var.dist5.5.nc'
-
+    resolution="15s"
     if not os.path.exists(ls_path):
         raise FileNotFoundError('Land mask file not found. ',
                     'Please download the file',
@@ -216,7 +216,7 @@ def make_haloLandMask(flight_dates,outfile,cfg_dict,add_sea_ice_mask=False):
             import measurement_instruments_ql
             # this creates a new surface mask that includes the sea ice cover
             radar_pos=measurement_instruments_ql.BAHAMAS.add_surface_mask_to_data(
-                radar_ds,cfg_dict,resolution="120s")
+                radar_ds,cfg_dict,resolution=resolution)
             
     else:    
         # Define dates to use
@@ -470,7 +470,7 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
         # Loop time
         print("Check for surface values")
         for j in range(hSurf.shape[0]):
-            # Check if landmask is -1 
+            # Check if landmask is true (=-0.1) 
             # and at least one measurement in radar profile
             # and profile's reflectivity maximum is larger 30 dBZ 
             # %%%%%than average zMaximum - 1 standard deviation
@@ -657,7 +657,7 @@ def make_radar_info_mask(flightdates,outfile,cfg_dict):
     # Load data
     key = {'0':'good',
            '0-1':'sea_ice_cover',
-           '.1':'surface',
+           '-.1':'surface',
            '3':'noise',
            '4':'radar calibration'}
     
@@ -737,8 +737,11 @@ def make_radar_info_mask(flightdates,outfile,cfg_dict):
             if surface_mask_df is not None:
                 radarInfoMask[np.array(~surface_mask_df.isnull())] = -0.1
             if sea_mask_df is not None:
-                radarInfoMask[:,0:int(cfg_dict["num_rangegates_for_sfc"])-1] =\
-                    sea_mask_df.iloc[:,0:int(cfg_dict["num_rangegates_for_sfc"])-1]
+                for i in range(radarInfoMask.shape[0]):
+                    # Only where sea is present, add the sea characteristics
+                    if not sea_mask_df.iloc[i,:].isna().sum()==\
+                        sea_mask_df.shape[1]:
+                        radarInfoMask[i,:]=sea_mask_df.iloc[i,:]
             if calibration_mask_df is not None:
                 radarInfoMask = pd.DataFrame(data=radarInfoMask,
                                              columns=radar_ds["height"],
