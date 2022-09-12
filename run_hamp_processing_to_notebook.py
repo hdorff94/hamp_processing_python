@@ -268,11 +268,12 @@ def main(campaign_name,rf):
 
 if __name__=="__main__":
    campaign="HALO_AC3"
-   research_flights_to_process=["RF13","RF14","RF15","RF16","RF17","RF18"
+   research_flights_to_process=["RF13"#,"RF14","RF15","RF16","RF17","RF18"
                                 ]
    for research_flight in research_flights_to_process:
        main(campaign,research_flight)
    globals().clear()
    campaign="HALO_AC3"
-   research_flights_to_process=["RF13","RF14","RF15","RF16","RF17","RF18"]
+   research_flights_to_process=["RF13"#,"RF14","RF15","RF16","RF17","RF18"
+                                ]
    

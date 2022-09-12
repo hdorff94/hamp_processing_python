@@ -335,6 +335,10 @@ class BAHAMAS(HALO_Devices):
     
     def open_bahamas_data(self):
         fname      = "*"+str(self.cfg_dict["flight_date_used"])+"*.nc"
+        #print("Open bahamas data in ", self.device_data_path)
+        #import os
+        #os.chdir(self.device_data_path)
+        #print(fname)
         bahamas_file=glob.glob(self.device_data_path+fname,
                                recursive=True)[0]
         #bahamas dataset
