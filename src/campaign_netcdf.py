@@ -350,14 +350,21 @@ class CPGN_netCDF():
                 temporary_version=str(int(int(temporary_version)+1)) 
         return temporary_version
     
-    def identify_newest_version(nc_path,for_calibrated_file=False):
+    def identify_newest_version(nc_path,device="",
+                                date="",for_calibrated_file=False):
         # the general file type of interest depends on calibrated or 
         # uncalibrated files in version number. After that highest
         # subversion_number has to be found.
-        if for_calibrated_file: 
-            nc_path=nc_path+"_v1*.nc"
+        if for_calibrated_file:
+            if not date=="" and not date =="": 
+                nc_path=nc_path+device+"_"+date+"_v1*.nc"
+            else:
+                nc_path=nc_path+"_v1*.nc"
         else:
-            nc_path=nc_path+"_v0*.nc"
+            if not date=="" and not date =="": 
+                nc_path=nc_path+device+"_"+date+"_v0*.nc"
+            else:
+                nc_path=nc_path+"_v0*.nc"
         # List relevant files of processing type (calibrated or uncalibrated)    
         nc_files=glob.glob(nc_path)
         # Identify highest subversion number and access its file

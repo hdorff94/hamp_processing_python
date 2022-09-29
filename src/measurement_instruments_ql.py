@@ -333,14 +333,24 @@ class BAHAMAS(HALO_Devices):
         self.var_name_table["irs_names_v2"] = self.irs_names_v2
         self.var_name_table["var_names_v1"] = self.var_names_v1
     
-    def open_bahamas_data(self):
-        fname      = "*"+str(self.cfg_dict["flight_date_used"])+"*.nc"
+    def open_bahamas_data(self,raw_or_processed="raw"):
+        if raw_or_processed =="raw":
+            fname           = "*"+str(self.cfg_dict["flight_date_used"])+"*.nc"
+            bahamas_path    = self.device_data_path
+            bahamas_file=glob.glob(bahamas_path+fname,recursive=True)[0]
+            
+        elif raw_or_processed =="processed":
+            from campaign_netcdf import CPGN_netCDF
+            bahamas_path=self.cfg_dict["device_data_path"]+"/all_nc/"
+            bahamas_file=CPGN_netCDF.identify_newest_version(bahamas_path,
+                                                device="bahamas",
+                                                date=self.cfg_dict["date"])
+            
+            #fname= "*"+str(self.cfg_dict["flight_date_used"])
         #print("Open bahamas data in ", self.device_data_path)
         #import os
         #os.chdir(self.device_data_path)
         #print(fname)
-        bahamas_file=glob.glob(self.device_data_path+fname,
-                               recursive=True)[0]
         #bahamas dataset
         self.bahamas_ds =   xr.open_dataset(bahamas_file)
     
