@@ -926,15 +926,14 @@ class HAMP(HALO_Devices):
                         self.flag[module] = DS.RF.values
 #                    self.DS[module] = DS
 
-    def open_processed_hamp_data(self,cfg_dict,
-                                 open_calibrated=False,
+    def open_processed_hamp_data(self,open_calibrated=False,
                                  newest_version=True):
-       import Campaign_netCDF
-       nc_path=cfg_dict["device_data_path"]+"all_nc/radiometer_"+\
-       str([*cfg_dict["Flight_Dates_used"]][0])
+       import campaign_netcdf
+       nc_path=self.cfg_dict["device_data_path"]+"all_nc/radiometer_"+\
+       str([*self.cfg_dict["Flight_Dates_used"]][0])
        #sys.exit()
        if newest_version:       
-          data_file=Campaign_netCDF.CPGN_netCDF.identify_newest_version(
+          data_file=campaign_netcdf.CPGN_netCDF.identify_newest_version(
               nc_path,for_calibrated_file=open_calibrated)
        if not open_calibrated:
            self.processed_hamp_ds=xr.open_dataset(data_file)
@@ -1043,11 +1042,11 @@ class RADAR(HALO_Devices):
                 
     def open_processed_radar_data(self,newest_version=True,
                                   reflectivity_is_calibrated=True):
-       import Campaign_netCDF
+       import campaign_netcdf
        nc_path=self.cfg_dict["device_data_path"]+"all_nc/radar_"+\
        str([*self.cfg_dict["Flight_Dates_used"]][0])
        if newest_version:       
-          data_file=Campaign_netCDF.CPGN_netCDF.identify_newest_version(
+          data_file=campaign_netcdf.CPGN_netCDF.identify_newest_version(
               nc_path,for_calibrated_file=reflectivity_is_calibrated)
        if not reflectivity_is_calibrated:
            self.processed_radar_ds=xr.open_dataset(data_file)
