@@ -1013,7 +1013,7 @@ class RADAR(HALO_Devices):
             self.attcorr_radar_ds=xr.open_mfdataset(self.radar_attcorr_fnames)
     
     def open_attitude_corrected_data(self):
-        import Campaign_Time #import specify_dates_to_use as specify_dates
+        import campaign_time as Campaign_Time #import specify_dates_to_use as specify_dates
 
         ### ----- radar needs special treatment ------------------------###
         cmpgn_time=Campaign_Time.Campaign_Time(self.cfg_dict["campaign"],
@@ -1025,14 +1025,14 @@ class RADAR(HALO_Devices):
             radar_is_attitude_corrected=True
         except:
             radar_is_attitude_corrected=False
-            import RadarAttitude        
+            import radarattitude        
             if not attitude_correction_by_bahamas:
                 # Use SMART data to correct the attitude by the radar    
                 print("Correct the radar attitude by SMART")
             else:
                 print("Correct the radar attitude by BAHAMAS")        
         
-                RadarAttitude.run_att_correction(
+                radarAttitude.run_att_correction(
                                     self.cfg_dict["Flight_Dates_used"],
                                     self.cfg_dict,use_smart=\
                                         not attitude_correction_by_bahamas)
