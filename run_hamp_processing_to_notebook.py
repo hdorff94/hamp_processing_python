@@ -75,10 +75,10 @@ def main(campaign_name,rf):
     
     
     #%%
-    instruments_to_unify=["bahamas",
+    instruments_to_unify=[#"bahamas",
                           #"dropsondes",
                           "radar",
-                          "radiometer",#"radar"] # default is bahamas, dropsondes, radar, radiometer.
+                          #"radiometer",#"radar"] # default is bahamas, dropsondes, radar, radiometer.
                           ]
     #%%
     # load config files
@@ -268,12 +268,14 @@ def main(campaign_name,rf):
 
 if __name__=="__main__":
    campaign="HALO_AC3"
-   research_flights_to_process=["RF13"#,"RF14","RF15","RF16","RF17","RF18"
+   research_flights_to_process=["RF01","RF02","RF03","RF05","RF06",
+                                "RF07","RF08","RF09","RF10","RF12",
+                                #"RF13","RF14","RF15","RF16","RF17","RF18"
                                 ]
    for research_flight in research_flights_to_process:
        main(campaign,research_flight)
-   globals().clear()
-   campaign="HALO_AC3"
-   research_flights_to_process=["RF13"#,"RF14","RF15","RF16","RF17","RF18"
-                                ]
+   #globals().clear()
+   #campaign="HALO_AC3"
+   #research_flights_to_process=["RF13"#,"RF14","RF15","RF16","RF17","RF18"
+   #                             ]
    

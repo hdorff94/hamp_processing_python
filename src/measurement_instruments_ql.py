@@ -521,7 +521,7 @@ class BAHAMAS(HALO_Devices):
         return _pres_min,_pres_maj,flv,flv_limits
     
     @staticmethod
-    def add_surface_mask_to_data(bah,cfg_dict,resolution="30s"): 
+    def add_surface_mask_to_data(bah,cfg_dict,resolution="120s"): 
         """
         
 
@@ -574,6 +574,12 @@ class BAHAMAS(HALO_Devices):
                     min_geoloc=np.unravel_index(np.argmin(distances,axis=None),
                                         lat_2d.shape)
                     sea_ice_mask.iloc[t]=sea_ice_ds["seaice"][min_geoloc[0],min_geoloc[1]]
+                    if bah_df["LAT"].iloc[t]>87:
+                        # from upon a specific latitude, the sea ice mask is
+                        # not yet provided anymore, but we can certainly 
+                        # assume full sea-ice cover.
+                        
+                        sea_ice_mask.iloc[t]=100
             else:
                 pass
             performance.updt(bah_df.shape[0],t)                                                             
