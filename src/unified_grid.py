@@ -1175,19 +1175,33 @@ def run_unify_grid(flightdates_use,cfg_dict):
                 [uni_time,uni_height] = unifyGrid_bahamas(flight,cfg_dict,
                                                           bahamas_vars)
             else:
-                filepath  = cfg_dict["device_data_path"]+"all_pickle/"
-                pkl_fname = "uniData_bahamas_"+str(flight)+".pkl"
-                try:
-                    with open(filepath+pkl_fname,"rb") as pkl_file:
-                        bahamas_dict=pickle.load(pkl_file)
-                        uni_time=bahamas_dict["uni_time"]
-                        uni_height=bahamas_dict["uni_height"]
-                        #del bahamas_dict
-                        print("Unified Bahamas already accessible and loaded.")
+                #check if bahamas is already given as unified nc file
+                #else look for pickle
+                #if pickle is not present anymore run unifyGrid_bahamas
+                filepath = cfg_dict["device_data_path"]+"all_nc/"
                 
-                except:
-                    print("Bahamas pickle does not exist and need to be rebuilt")
-                    [uni_time,uni_height] = unifyGrid_bahamas(flight,cfg_dict,
+                bahamas_nc_file="bahamas_"+str(flight)+"_v"+\
+                                    cfg_dict["version"]+\
+                                        "."+cfg_dict["subversion"]+".nc"
+                
+                if os.path.exists(filepath+bahamas_nc_file):
+                    bahamas_ds=xr.open_dataset(filepath+bahamas_nc_file)
+                    uni_time=pd.DatetimeIndex(bahamas_ds["time"].values)
+                    uni_height=bahamas_ds["height"].to_series()
+                else:    
+                    filepath  = cfg_dict["device_data_path"]+"all_pickle/"
+                    pkl_fname = "uniData_bahamas_"+str(flight)+".pkl"
+                    try:
+                        with open(filepath+pkl_fname,"rb") as pkl_file:
+                            bahamas_dict=pickle.load(pkl_file)
+                            uni_time=bahamas_dict["uni_time"]
+                            uni_height=bahamas_dict["uni_height"]
+                            #del bahamas_dict
+                            print("Unified Bahamas pickle accessible & loaded.")
+                
+                    except:
+                        print("Bahamas pickle does not exist and need to be rebuilt")
+                        [uni_time,uni_height] = unifyGrid_bahamas(flight,cfg_dict,
                                                               bahamas_vars)
                 
             # Create empty variable according to unified grid

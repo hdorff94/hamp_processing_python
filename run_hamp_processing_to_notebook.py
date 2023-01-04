@@ -77,8 +77,8 @@ def main(campaign_name,rf):
     #%%
     instruments_to_unify=[#"bahamas",
                           #"dropsondes",
-                          "radar",
-                          #"radiometer",#"radar"] # default is bahamas, dropsondes, radar, radiometer.
+                          #"radar",
+                          "radiometer",#"radar"] # default is bahamas, dropsondes, radar, radiometer.
                           ]
     #%%
     # load config files
@@ -132,9 +132,12 @@ def main(campaign_name,rf):
                             {"t1":start_date,"t2":end_date,
                              "date":start_date,"flight_date_used":start_date,
                              "unify_Grid":True,               #0.1 default True
-                             "correct_attitude":True,         #0.1 default False
-                                                              # as otherwise it is recalculated 
-                                                              # every time although already existent
+                             "correct_attitude":False,         #0.1 default False
+                                                              # as otherwise it
+                                                              # is recalculated 
+                                                              # every time 
+                                                              # although already
+                                                              # existent
                              "fill_gaps":True,                # 0.2
                              "remove_clutter":True,           # 0.3 default True
                              "remove_side_lobes":True,        # 0.4 default True
@@ -268,9 +271,9 @@ def main(campaign_name,rf):
 
 if __name__=="__main__":
    campaign="HALO_AC3"
-   research_flights_to_process=["RF01","RF02","RF03","RF05","RF06",
-                                "RF07","RF08","RF09","RF10","RF12",
-                                #"RF13","RF14","RF15","RF16","RF17","RF18"
+   research_flights_to_process=[#"RF01","RF02","RF03","RF05","RF06",
+                                #"RF07","RF08","RF09","RF10","RF12",
+                                "RF15","RF16","RF17","RF18"
                                 ]
    for research_flight in research_flights_to_process:
        main(campaign,research_flight)
