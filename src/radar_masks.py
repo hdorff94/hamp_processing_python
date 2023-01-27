@@ -164,7 +164,8 @@ def load_existing_mask(flight_date,cfg_dict,mask_type="land"):
         
     return radar_mask
 
-def make_haloLandMask(flight_dates,outfile,cfg_dict,add_sea_ice_mask=False):
+def make_haloLandMask(flight_dates,outfile,cfg_dict,add_sea_ice_mask=False,
+                      refer_to_radiometer=False,radiometer_ds=xr.Dataset()):
     """
     
 
@@ -176,6 +177,13 @@ def make_haloLandMask(flight_dates,outfile,cfg_dict,add_sea_ice_mask=False):
         DESCRIPTION.
     cfg_dict : dict
         Dictionary containing the configuration arguments
+    add_sea_ice_mask : boolean, Default: False
+        Specifier if sea_ice_mask should be created and added or not. Might not
+        be useful for lower latitude flight campaigns.
+    use_radiometer : boolean, Default : False
+        In general this routine is supposed to be applied for the radar data
+        however as also the radiometer can require a surface mask this 
+        additional command should set to True and other "radar_ds" ist used.
     Returns
     -------
     None.
@@ -183,7 +191,10 @@ def make_haloLandMask(flight_dates,outfile,cfg_dict,add_sea_ice_mask=False):
     """
     
     # Set file paths
-    outpath = cfg_dict["radar_mask_path"]#cfg_dict["data_path"]+'Auxiliary/Masks/'
+    if not refer_to_radiometer:
+        outpath = cfg_dict["radar_mask_path"]#cfg_dict["data_path"]+'Auxiliary/Masks/'
+    else:
+        outpath = cfg_dict["device_data_path"]+"auxiliary/"
     ls_path = cfg_dict["data_path"]+'Auxiliary/lsmask-world8-var.dist5.5.nc'
     resolution="15s"
     if not os.path.exists(ls_path):
@@ -200,9 +211,13 @@ def make_haloLandMask(flight_dates,outfile,cfg_dict,add_sea_ice_mask=False):
             print("Land Sea ice mask for ",flight)
             
             #  Get file names
+            
             f="*"+str(flight)+"*_*"+cfg_dict["version"]+"."+cfg_dict["subversion"]+"*.nc"
             radar_fpath = glob.glob(cfg_dict["device_data_path"]+"radar_mira/"+f)
             radar_ds = xr.open_dataset(radar_fpath[0])
+            
+            if refer_to_radiometer:
+                radar_ds = radiometer_ds.copy()
             # Read position data and add it to a dataframe that includes the 
             # land mask to built
             #radar_pos= pd.DataFrame(data=np.nan,
@@ -253,6 +268,8 @@ def make_haloLandMask(flight_dates,outfile,cfg_dict,add_sea_ice_mask=False):
             f="*"+str(flight)+"*_*"+cfg_dict["version"]+"."+cfg_dict["subversion"]+"*.nc"
             radar_fpath = glob.glob(cfg_dict["device_data_path"]+"radar_mira/"+f)
             radar_ds = xr.open_dataset(radar_fpath[0])
+            if refer_to_radiometer:
+                radar_ds=radiometer_ds.copy()
             # Read position data and add it to a dataframe that includes the 
             # land mask to built
             radar_pos= pd.DataFrame(data=np.nan,
@@ -285,12 +302,15 @@ def make_haloLandMask(flight_dates,outfile,cfg_dict,add_sea_ice_mask=False):
     # If file already exists, overwrite it
     # THIS WAS in append mode BEFORE!
     radar_pos=radar_pos.resample("1s").mean()
+    if refer_to_radiometer:
+        radar_pos=radar_pos.reindex(pd.DatetimeIndex(radar_ds.time.values))
     radar_pos=radar_pos.bfill()
     if not add_sea_ice_mask:
         landmask_file="Land_Mask_"+str(flight)+".csv"
     else:
         landmask_file="Land_Sea_Ice_Mask_"+str(flight)+".csv"
-        
+    if refer_to_radiometer:
+        landmask_file="Radiometer_"+landmask_file
     radar_pos.to_csv(path_or_buf=outpath+landmask_file,index=True)
     #sys.exit()
     print("Land mask saved as:", outpath+landmask_file)    
@@ -401,7 +421,7 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
         versionNum = cfg_dict["version"]+"."+cfg_dict["subversion"]
         # Find index of current date in land mask
         #     ind = strcmp(flightdates_mask_input{i}, flightdates_mask);
-        if not float(versionNum)<1.0:
+        if not float(versionNum)<3.0:
             raise Exception("You assigned the wrong version number for the ",
                             "surface mask.")
         
@@ -585,7 +605,7 @@ def make_radar_sea_surface_mask(flightdates, outfile, cfg_dict):
         # been removed from the data yet
         versionNum = cfg_dict["version"]+"."+cfg_dict["subversion"]
         # Find index of current date in land mask
-        if not float(versionNum)<1.0:
+        if not float(versionNum)<3.0:
             raise Exception("You assigned the wrong version number for the ",
                             "surface mask.")
         

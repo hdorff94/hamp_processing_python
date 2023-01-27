@@ -955,10 +955,12 @@ class Radar_Errors():
     
 def main(function_configurated=False,
          prcs_cfg_dict=None):
+    sys.path.insert(1,os.getcwd()+"/../")
+    import init_paths
     
     if not function_configurated:
         import config_handler
-        from campaign_time import specify_dates_to_use as specify_dates
+        import campaign_time #import specify_dates_to_use as specify_dates
 
         Flight_Dates={}
         Flight_Dates["EUREC4A"]={"RF01":"20200119","RF02":"20200122",
@@ -969,9 +971,16 @@ def main(function_configurated=False,
                              "RF11":"20200209","RF12":"20200211",
                              "RF13":"20200213","RF14":"20200215",
                              "RF15":"20200218"}
+        campaign="EUREC4A"
+        working_path=init_paths.main()
+        actual_working_path=os.getcwd()
+        airborne_data_importer_path=working_path+"/Work/GIT_Repository/"+\
+                                "hamp_processing_py/"+\
+                                    "hamp_processing_python/" # This is also the major path where your data will be stored
+    
         #%%
         # load config files
-        cfg=config_handler.Configuration(major_path=os.getcwd())
+        cfg=config_handler.Configuration(major_path=airborne_data_importer_path)
         #major_cfg_name="major_cfg"
         processing_cfg_name="unified_grid_cfg"    
         major_cfg_name="major_cfg"
@@ -985,9 +994,9 @@ def main(function_configurated=False,
         # #filenameprefix = 'EUREC4A_HALO_';
         #     filenameprefix = ''
 
-        campaign="EUREC4A"
         filenameprefix = campaign+'_HALO_'
         #%%
+        
         print("=================== Configuration ============================")
         major_cfg=cfg.open_or_create_config_file(arg=1,name=major_cfg_name,
                                          campaign=campaign)
@@ -1019,12 +1028,12 @@ def main(function_configurated=False,
             system_is_windows=False
 
         if system_is_windows:
-            if not major_config_file["Input"]["system"]=="windows":
-                windows_paths={
+        #    if not major_config_file["Input"]["system"]=="windows":
+            windows_paths={
                     "system":"windows",
                     "campaign_path":os.getcwd()+"/"    
                     }
-                windows_paths["save_path"]=windows_paths["campaign_path"]+\
+            windows_paths["save_path"]=windows_paths["campaign_path"]+\
                                                 "Save_path/"
         
         
@@ -1102,10 +1111,8 @@ def main(function_configurated=False,
         #%% Relevant flight dates
         #   Specify the relevant flight dates for the period of start
         #   and end date given above
-
-        flightdates_use = specify_dates(prcs_cfg_dict["t1"],
-                                prcs_cfg_dict["t2"],
-                                Flight_Dates);
+        cmpgn_time=campaign_time.Campaign_Time("HALO_AC3",start_date)
+        flightdates_use = cmpgn_time.specify_dates_to_use(prcs_cfg_dict)
 
     else:
         pass

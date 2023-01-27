@@ -38,14 +38,26 @@ class Radiometer_Processing():
     def remove_turn_ascent_descent_data(self,radiometer_df,tb_dict):
         print("Remove turn and ascent/descent data")
         flight=self.cfg_dict["Flight_Dates_used"][0]
-        filepath  = self.cfg_dict["device_data_path"]+"all_pickle/"
+        nc_filepath  = self.cfg_dict["device_data_path"]+"all_nc/"
+        pkl_filepath = self.cfg_dict["device_data_path"]+"all_pickle/"
+        
+        nc_fname = "bahamas_"+str(flight)+"_v"+self.cfg_dict["version"]+"."+\
+                        self.cfg_dict["subversion"]+".nc"
         pkl_fname = "uniData_bahamas_"+str(flight)+".pkl"
-        with open(filepath+pkl_fname,"rb") as pkl_file:
-            bahamas_dict=pickle.load(pkl_file)
+        try: 
+            bahamas_ds=xr.open_dataset(nc_filepath+nc_fname)
+            bahamas_cond=pd.DataFrame()
+            bahamas_cond["Roll"]=bahamas_ds["roll"].to_series()
+            bahamas_cond["Alt"]=bahamas_ds["alt"].to_series()
+        except:
+            with open(pkl_filepath+pkl_fname,"rb") as pkl_file:
+                bahamas_dict=pickle.load(pkl_file)
             
-            bahamas_cond=bahamas_dict["uniBahamas_roll_1d"].to_frame(name="Roll")\
-                    .join(bahamas_dict["uniBahamas_alt_1d"].to_frame(name="Alt"))
-            del bahamas_dict
+                bahamas_cond=bahamas_dict["uniBahamas_roll_1d"].to_frame(\
+                                                                name="Roll")\
+                            .join(bahamas_dict["uniBahamas_alt_1d"].to_frame(\
+                                                                name="Alt"))
+                del bahamas_dict
         
         for var in radiometer_df.keys():
             # Ignore times with roll angle large than roll angle threshold
@@ -370,6 +382,51 @@ class Radiometer_Processing():
         
         return tb_data,shift_comment
 
+    def add_mask_values(self,ds):
+        
+        """
+        
+
+        Parameters
+        ----------
+        ds : xr.Dataset
+            unified radiometer dataset.
+        bahamas_dict : dictionary
+            containing all bahamas variables from unified grid
+        coord_dict : dict
+            coordinates for output file
+        
+        Returns
+        -------
+        ds : xr.Dataset
+            unified radar dataset with mask values
+
+        """
+        
+        mask_path=self.cfg_dict["device_data_path"]+"auxiliary/"
+        mask_fname="Radiometer_Land_Sea_Ice_Mask_"+\
+                            str(self.cfg_dict["Flight_Dates_used"][0])+".csv"
+        
+        if not os.path.exists(mask_path+mask_fname):
+            import radar_masks as airborne_masks
+            airborne_masks.make_haloLandMask(self.cfg_dict["Flight_Dates_used"],
+                                        {},self.cfg_dict,add_sea_ice_mask=True,
+                                        refer_to_radiometer=True,
+                                        radiometer_ds=ds)
+            #ds["sea_ice"].to_series().to_csv(mask_path+mask_fname)
+        # Once the mask is existent it can be read
+        surface_mask=pd.read_csv(mask_path+mask_fname)
+        surface_mask.index=pd.DatetimeIndex(surface_mask["Unnamed: 0"])
+        del surface_mask["Unnamed: 0"]
+        ds["surface_mask"]=xr.DataArray(data=surface_mask["sea_ice"],
+                                        coords={"time":ds.time.values})
+        
+        # loc radar mask to unified grid
+        
+        # interpolate to get rid off single grid values
+        print("Surface mask values added to unified grid")
+        return ds
+    
     def calibrate_radiometer_TBs(self,ds):
         from Measurement_Instruments import HALO_Devices, HAMP
         HALO_Devices_cls=HALO_Devices(self.cfg_dict)
@@ -531,11 +588,13 @@ class Radar_Processing():
                 " : "+str(radar_mask.iloc[i,-1]))
         
         # loc radar mask to unified grid
-        radar_mask_uni=pd.DataFrame(
-                            data=np.nan, 
-                            index=pd.DatetimeIndex(\
-                                bahamas_dict["uni_time"]),
-                            columns=ds["height"])
+        try:
+            time_coord=pd.DatetimeIndex(bahamas_dict["time"].values)
+        except:
+            time_coord=pd.DatetimeIndex(bahamas_dict["uni_time"])
+        radar_mask_uni=pd.DataFrame(data=np.nan, 
+                            index=time_coord,columns=ds["height"])
+        
         radar_mask=radar_mask.iloc[:,0:len(ds["height"])]
         radar_mask_uni.loc[radar_mask.index]=radar_mask
         # interpolate to get rid off single grid values
@@ -640,9 +699,9 @@ class Radar_Processing():
     
     def calibrate_reflectivity(self,ds):
         prcs_cfg_dict=self.cfg_dict
-        import Measurement_Instruments
+        import measurement_instruments_ql as Measurement_Instruments
         HALO_Devices_cls=Measurement_Instruments.HALO_Devices(prcs_cfg_dict)
-        Radar_cls=Measurement_Instruments.HALO_Radar(HALO_Devices_cls)
+        Radar_cls=Measurement_Instruments.RADAR(HALO_Devices_cls)
         Radar_cls.show_calibration()
         zg_attrs=ds["Zg"].attrs
         ds["Zg"]=ds["Zg"].where(ds['Zg'] != \

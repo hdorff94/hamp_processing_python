@@ -895,6 +895,12 @@ def correct_att_bahamas(radar_fname,version_number,radarOut_dir,
         
         outfile_ds[var]=temporary_dataarray
     
+    #%% Calibrate Radar Zg
+    #if cfg_dict["calibrate_radar"]:   ---> this was old, 
+    #is switched to processing unified grid
+    
+    #   radar_data_corr["Zg"]*=0.69
+    #   print("Radar Zg is calibrated after offset dB derived by Ewald, 2023")
     #%% Calculate dBZ
     print('Calculate dBZ')
     if 'Zg' in var_edit:
@@ -1086,7 +1092,9 @@ def perform_att_comb(convertmarker,flight,cfg_dict):
     """ 
     
     #% Set version number
-    version_number = '0';
+    version_number = '0'
+    if cfg_dict["calibrate_radar"]:
+        version_number="1"
     #------------- BEGIN CODE --------------
     #%%
     #% Get flight dates to use in this program

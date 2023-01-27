@@ -258,24 +258,36 @@ class CPGN_netCDF():
             bahamas_nc_vars={bahamas_cls.nc_var_names[k]:k \
                              for k in bahamas_cls.nc_var_names}
             
-        else:    
-            # If instrument is not bahamas, add geo informations to dataset
-            # position 138 only works for current path description
-            file_start=pkl_file.rfind("/")+9 #9 because of uniData_ having 8 char
-            file_end=pkl_file[-13:] # 13 due to "_YYYYMMDD.pkl"
-            bahamas_pkl_fname=pkl_file[0:file_start]+"bahamas"+file_end
-            with open(bahamas_pkl_fname,"rb") as pkl:
-                print("Add Geo-Reference Data from Bahamas")
-                bahamas_dict=pickle.load(pkl)
-                bahamas_info=bahamas_dict["bahamas_extra_info"]
-                bahamas_info.index=bahamas_info["unify_varname"]
-                for geo_var in ["lat","lon","alt"]:
-                    bahamas_geo_var="uniBahamas_"+geo_var+"_1d"
-                    ds[geo_var]=xr.DataArray(data=bahamas_dict[bahamas_geo_var].T,
+        else:
+            # check if bahamas netcdf is there.
+            nc_path=cfg_dict["device_data_path"]+"all_nc/"
+            nc_file="bahamas_"+cfg_dict["date"]+"_v"+cfg_dict["version"]+"."+\
+                        cfg_dict["subversion"]+".nc"
+            if os.path.exists(nc_path+nc_file):
+                bahamas_dict=xr.open_dataset(nc_path+nc_file)
+            
+                ds["lat"]=bahamas_dict["lat"]
+                ds["lon"]=bahamas_dict["lon"]
+                ds["alt"]=bahamas_dict["alt"]
+            else:
+                
+                # If instrument is not bahamas, add geo informations to dataset
+                # position 138 only works for current path description
+                file_start=pkl_file.rfind("/")+9 #9 because of uniData_ having 8 char
+                file_end=pkl_file[-13:] # 13 due to "_YYYYMMDD.pkl"
+                bahamas_pkl_fname=pkl_file[0:file_start]+"bahamas"+file_end
+                with open(bahamas_pkl_fname,"rb") as pkl:
+                    print("Add Geo-Reference Data from Bahamas")
+                    bahamas_dict=pickle.load(pkl)
+                    bahamas_info=bahamas_dict["bahamas_extra_info"]
+                    bahamas_info.index=bahamas_info["unify_varname"]
+                    for geo_var in ["lat","lon","alt"]:
+                        bahamas_geo_var="uniBahamas_"+geo_var+"_1d"
+                        ds[geo_var]=xr.DataArray(data=bahamas_dict[bahamas_geo_var].T,
                                               dims="time")
-                    ds[geo_var].attrs["long_name"]  = \
+                        ds[geo_var].attrs["long_name"]  = \
                                     bahamas_info["variable"].loc[bahamas_geo_var]
-                    ds[geo_var].attrs["units"]      = \
+                        ds[geo_var].attrs["units"]      = \
                                     bahamas_info["units"].loc[bahamas_geo_var]
             if instrument=="radar":
                 import processing_unified_grid as prcsuni
@@ -327,6 +339,11 @@ class CPGN_netCDF():
                 ds=Radiometer_uni_prcs.calibrate_radiometer_TBs(ds)    
             if Performance.str2bool(cfg_dict["remove_radiometer_errors"]):
                 ds=Radiometer_uni_prcs.remove_radiometer_errors(ds)
+            if Performance.str2bool(cfg_dict["add_radar_mask_values"]):
+                ds=Radiometer_uni_prcs.add_mask_values(ds)
+                ds.attrs["performed_processing"]+=\
+                    " Radiometer measurements are provided with masks."
+                
         if instrument=="dropsondes":
             ds.attrs["performed_processing"]="No further processing done."
         #######################################################################
@@ -347,7 +364,8 @@ class CPGN_netCDF():
         if instr in ["radar","radiometer"]:
             device_calibration="calibrate_"+instr
             if Performance.str2bool(cfg_dict[device_calibration]):
-                temporary_version=str(int(int(temporary_version)+1)) 
+                if int(temporary_version)==0:
+                    temporary_version=str(int(int(temporary_version)+1)) 
         return temporary_version
     
     def identify_newest_version(nc_path,device="",

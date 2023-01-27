@@ -75,10 +75,10 @@ def main(campaign_name,rf):
     
     
     #%%
-    instruments_to_unify=[#"bahamas",
+    instruments_to_unify=["radar",
                           #"dropsondes",
                           #"radar",
-                          "radiometer",#"radar"] # default is bahamas, dropsondes, radar, radiometer.
+                          #"radiometer",#"radar"] # default is bahamas, dropsondes, radar, radiometer.
                           ]
     #%%
     # load config files
@@ -132,7 +132,7 @@ def main(campaign_name,rf):
                             {"t1":start_date,"t2":end_date,
                              "date":start_date,"flight_date_used":start_date,
                              "unify_Grid":True,               #0.1 default True
-                             "correct_attitude":False,         #0.1 default False
+                             "correct_attitude":True,         #0.1 default False
                                                               # as otherwise it
                                                               # is recalculated 
                                                               # every time 
@@ -146,7 +146,7 @@ def main(campaign_name,rf):
                              "add_radar_mask_values":True,    # if false mask 
                                                                        # is not added to the data
                                       
-                             "version":0,
+                             "version":1,
                              "subversion":6,
                              "quicklooks":False,               # default True
                              "missing_value":-888,
@@ -167,7 +167,7 @@ def main(campaign_name,rf):
                                       "num_RangeGates_for_sfc":4})
     cfg.add_entries_to_config_object(processing_cfg_name,
                                      {"calibrate_radiometer":False, # 1.x
-                                      "calibrate_radar":False})     # 1.x
+                                      "calibrate_radar":True})     # 1.x
     
     #%%
     processing_config_file=cfg.load_config_file(processing_cfg_name)
@@ -234,34 +234,35 @@ def main(campaign_name,rf):
        
     # %% Processing
     print("=========================== Processing ===============================")
+    #for instr in instruments_to_unify:
     if "radar" in instruments_to_unify:
-        if performance.str2bool(prcs_cfg_dict["correct_attitude"]):
-            # Correct radar data for aircraft attitude
-            print("Correct the radar attitude")
-            radar_attitude.run_att_correction(flightdates_use, prcs_cfg_dict)
+            if performance.str2bool(prcs_cfg_dict["correct_attitude"]):
+                # Correct radar data for aircraft attitude
+                print("Correct the radar attitude")
+                radar_attitude.run_att_correction(flightdates_use, prcs_cfg_dict)
     
-        if not performance.str2bool(prcs_cfg_dict["correct_attitude"]):
-            prcs_cfg_dict["radar_outDir"]=prcs_cfg_dict["device_data_path"]+"radar_mira/"
-            for flight in flightdates_use:
-                # Even if explicitly desired to not attitude correct radar files,
-                # it is checked here, whether the corrected-file already exists
-                if len(glob.glob(prcs_cfg_dict["radar_outDir"]+"*"+str(flight)+"*.nc"))>=1:
-                    print("Flight is already attitude-corrected, so skip this step")
+            if not performance.str2bool(prcs_cfg_dict["correct_attitude"]):
+                prcs_cfg_dict["radar_outDir"]=prcs_cfg_dict["device_data_path"]+"radar_mira/"
+                for flight in flightdates_use:
+                    # Even if explicitly desired to not attitude correct radar files,
+                    # it is checked here, whether the corrected-file already exists
+                    if len(glob.glob(prcs_cfg_dict["radar_outDir"]+"*"+str(flight)+"*.nc"))>=1:
+                        print("Flight is already attitude-corrected, so skip this step")
             
-                else:
-                    new_flightdates_use=pd.Series(flight,
+                    else:
+                        new_flightdates_use=pd.Series(flight,
                                   index=flightdates_use[\
                                             flightdates_use==int(flight)].index)
-                    radar_attitude.run_att_correction(
+                        radar_attitude.run_att_correction(
                                 new_flightdates_use,prcs_cfg_dict)
     
-        if performance.str2bool(prcs_cfg_dict["add_radarmask"]):
-            # Create radar info mask
-            radar_masks.run_make_masks(flightdates_use, prcs_cfg_dict)
+            if performance.str2bool(prcs_cfg_dict["add_radarmask"]):
+                # Create radar info mask
+                radar_masks.run_make_masks(flightdates_use, prcs_cfg_dict)
     
     if performance.str2bool(prcs_cfg_dict["unify_grid"]):
-        # Unify data from bahamas, dropsondes, radar, radiometer onto common grid
-        unigrid.run_unify_grid(flightdates_use,prcs_cfg_dict)
+            # Unify data from bahamas, dropsondes, radar, radiometer onto common grid
+            unigrid.run_unify_grid(flightdates_use,prcs_cfg_dict)
     
     # if quicklooks
     #     % Plot quicklooks for latest version
@@ -271,10 +272,26 @@ def main(campaign_name,rf):
 
 if __name__=="__main__":
    campaign="HALO_AC3"
-   research_flights_to_process=[#"RF01","RF02","RF03","RF05","RF06",
-                                #"RF07","RF08","RF09","RF10","RF12",
-                                "RF15","RF16","RF17","RF18"
+   research_flights_to_process=[#"RF01",
+                                #"RF02",
+                                #"RF03",
+                                #"RF04",
+                                #"RF05",
+                                #"RF06",
+                                #"RF07",
+                                #"RF08",#,
+                                #"RF09",
+                                #"RF10",#
+                                "RF11",
+                                "RF12",
+                                "RF13",
+                                "RF14",
+                                "RF15",
+                                "RF16",
+                                "RF17",
+                                "RF18"
                                 ]
+   
    for research_flight in research_flights_to_process:
        main(campaign,research_flight)
    #globals().clear()

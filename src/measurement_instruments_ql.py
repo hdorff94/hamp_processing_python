@@ -549,8 +549,15 @@ class BAHAMAS(HALO_Devices):
             time_values=bah.time[:]
         bah_df=pd.DataFrame(data=np.nan,columns=["LAT","LON"],
                              index=pd.DatetimeIndex(np.array(time_values)))
-        bah_df["LAT"]=bah.IRS_LAT.values
-        bah_df["LON"]=bah.IRS_LON.values
+        try:
+            bah_df["LAT"]=bah.IRS_LAT.values
+        except:
+            bah_df["LAT"]=bah.lat.values
+        try:
+            bah_df["LON"]=bah.IRS_LON.values
+        except:
+            bah_df["LON"]=bah.lon.values
+        #if not 
         bah_df=bah_df.resample(resolution,convention="start").mean()
     
         # Create sea_ice_mask on aircraft
@@ -1136,7 +1143,7 @@ class RADAR(HALO_Devices):
             self.raw_radar_ds["dBZg"]=xr.DataArray(data=dBZg.T,
                                                dims=ds.dims)
         else:
-            self.processed_radar_ds["dBZg"]=xr.DataArray(data=dBZg.T,
+            self.processed_radar_ds["dBZg"]=xr.DataArray(data=dBZg,
                                                dims=ds.dims)
             if "dBZg" in ds.variables:
                 self.processed_radar_ds["dBZg"].attrs=dBZg_attrs
@@ -1172,6 +1179,7 @@ class RADAR(HALO_Devices):
     
     #%% Calibration stuff
     def get_calibration(self):
+        flight=self.cfg_dict["Flight_Dates_used"].index[0]
         ## --> for specific campaigns
         if (self.cfg_dict["campaign"]=="NAWDEX") or\
             (self.cfg_dict["campaign"]=="NARVAL-II"):
@@ -1180,8 +1188,17 @@ class RADAR(HALO_Devices):
         elif self.cfg_dict["campaign"]=="EUREC4A":
             self.dB_offset=-1.7 #?
         elif self.cfg_dict["campaign"]=="HALO_AC3":
-            self.dB_offset=-1.7 #--> to be determined by F. Ewald
-    
+            dB_offsets={"RF01":-2.1,
+                        "RF09":-2.1,
+                        "RF12":-1.2,
+                        "RF13":-1.6,
+                        "RF16":-1.1,
+                        "RF17":-1.3,
+                        "mean":-1.6}
+            if flight in [*dB_offsets.keys()]:
+                self.dB_offset=dB_offsets[flight] #--> to be determined by F. Ewald
+            else:
+                self.dB_offset=dB_offsets["mean"]
     def show_calibration(self):
         self.get_calibration()
         print("The raw reflectivity has a offset of",self.dB_offset,"dB",
