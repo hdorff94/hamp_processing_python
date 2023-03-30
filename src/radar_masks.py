@@ -196,7 +196,7 @@ def make_haloLandMask(flight_dates,outfile,cfg_dict,add_sea_ice_mask=False,
     else:
         outpath = cfg_dict["device_data_path"]+"auxiliary/"
     ls_path = cfg_dict["data_path"]+'Auxiliary/lsmask-world8-var.dist5.5.nc'
-    resolution="15s"
+    resolution="30s"
     if not os.path.exists(ls_path):
         raise FileNotFoundError('Land mask file not found. ',
                     'Please download the file',

@@ -1066,11 +1066,14 @@ class RADAR(HALO_Devices):
        else:
             self.calib_processed_radar_ds=xr.open_dataset(data_file)
     
-    def open_version_specific_processed_radar_data(self,version="undefined"):
+    def open_version_specific_processed_radar_data(self,version="undefined",
+                                                   for_calibrated_file=False):
         import campaign_netcdf as Campaign_netCDF
         nc_path=self.cfg_dict["device_data_path"]+"all_nc/radar_"+\
         str([*self.cfg_dict["Flight_Dates_used"]][0])
-        default_data_file=Campaign_netCDF.CPGN_netCDF.identify_newest_version(nc_path)
+        print("Look for Radar data in ",nc_path)
+        default_data_file=Campaign_netCDF.CPGN_netCDF.identify_newest_version(
+            nc_path,for_calibrated_file=for_calibrated_file)
         if version=="undefined":
             # the newest version will be used
             data_file=default_data_file
