@@ -13,9 +13,12 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.cm as cm
-             
+from matplotlib import colors
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
+
 import seaborn as sns
 from cmcrameri import cm as cmaeri
+
 try: 
     import typhon
 except:
@@ -1073,6 +1076,282 @@ class Radar_Quicklook(Quicklook_Plotter):
             fig_name="calibrated_"+fig_name
         fig.savefig(self.radar_fig_path+fig_name,bbox_inches="tight",dpi=300)
         print("Figure saved as:",self.radar_fig_path+fig_name)
+    
+    def plot_only_precip_rates(self,halo_era5,halo_icon_hmp,
+                               precipitation_rate,ar_of_day,
+                               inflow_times,internal_times,outflow_times,
+                               radar_str,reflectivity_for_snow="Ze"):
+        precip_rate_fig=plt.figure(figsize=(16,9))
+        ax1=precip_rate_fig.add_subplot(111)
+        ax1.plot(halo_era5["Interp_Precip"],lw=2,ls="--",color="k",label="ERA5:"+\
+            str(round(float(halo_era5["Interp_Precip"].mean()),2)),zorder=5)
+        ax1.plot(halo_icon_hmp["Interp_Precip"],lw=3,ls="-",color="k",label="ICON-NWP:"+\
+            str(round(float(halo_icon_hmp["Interp_Precip"].mean()),2)),zorder=6)
+        ax1.plot(halo_icon_hmp["Interp_Precip"],lw=2,ls="--",color="w",zorder=7)
+        ax1.plot(precipitation_rate["mean_rain"],lw=3,color="darkgreen",
+            label="avg_r:"+str(round(float(precipitation_rate["mean_rain"].mean()),2)))
+        ax1.plot(precipitation_rate["r_norris"],lw=1,color="lightgreen",
+            label="nor:"+str(round(float(precipitation_rate["r_norris"].mean()),2)))
+        ax1.plot(precipitation_rate["r_palmer"],lw=1,color="mediumseagreen",
+            label="pal:"+str(round(float(precipitation_rate["r_palmer"].mean()),2)))
+        ax1.plot(precipitation_rate["r_chandra"],lw=1,color="green",
+            label="cha:"+str(round(float(precipitation_rate["r_chandra"].mean()),2)))
+        # snow 
+        ax1.plot(precipitation_rate["mean_snow"],lw=3,color="darkblue",
+            label="avg_s:"+str(round(float(precipitation_rate["mean_snow"].mean()),2)))
+        ax1.plot(precipitation_rate["s_schoger"],lw=0.5,color="lightblue",
+            label="sch:"+str(round(float(precipitation_rate["s_schoger"].mean()),2)))
+        ax1.plot(precipitation_rate["s_matrosov"],lw=0.5,color="blue",
+            label="mat:"+str(round(float(precipitation_rate["s_matrosov"].mean()),2)))
+        ax1.plot(precipitation_rate["s_heymsfield"],lw=0.5,color="cadetblue",
+            label="hey:"+str(round(float(precipitation_rate["s_heymsfield"].mean()),2)))
+
+        if inflow_times[0]<outflow_times[-1]:
+            ax1.axvspan(pd.Timestamp(inflow_times[-1]),
+               pd.Timestamp(internal_times[0]),
+               alpha=0.5, color='grey')
+            ax1.axvspan(pd.Timestamp(internal_times[-1]),
+               pd.Timestamp(outflow_times[0]),
+               alpha=0.5, color='grey')   
+        else:
+            ax1.axvspan(pd.Timestamp(outflow_times[-1]),
+               pd.Timestamp(internal_times[0]),
+               alpha=0.5, color='grey')
+            ax1.axvspan(pd.Timestamp(internal_times[-1]),
+               pd.Timestamp(inflow_times[0]),
+               alpha=0.5, color='grey')   
+
+        ax1.legend(loc="top left",ncol=6)
+        #ax1.set_xticks=axs[1].get_xticks()
+        ax1.set_xticklabels([])
+        ax1.set_ylabel("Precipitation\nrate ($\mathrm{mmh}^{-1}$)")
+        fig_name=self.flight[0]+"_"+ar_of_day+"_Only_Rain_internal_"+\
+            radar_str+"_"+reflectivity_for_snow+".png"
+        precip_rate_fig.savefig(self.plot_path+fig_name,
+                                dpi=300,bbox_inches="tight")
+        print("Figure saved as:",self.plot_path+fig_name)
+        
+    def processed_radar_rain_rate(self,halo_era5,halo_icon_hmp,
+                                  precipitation_rate,inflow_times,
+                                  internal_times,outflow_times,ar_of_day,
+                                  calibrated_radar=True,
+                                  reflectivity_for_snow="Ze"):
+        # Now raw_uni_radar and ds (processed uni radar) can be compared
+        # via plotting
+        font_size=12
+        matplotlib.rcParams.update({"font.size":font_size})
+        
+        fig,axs=plt.subplots(4,1,figsize=(12,12),
+                             gridspec_kw=dict(height_ratios=(1,1,1.0,0.1)),
+                             sharex=True)
+        processed_radar=self.processed_radar
+        y=np.array(processed_radar["height"][:])
+        statement="Plotting HAMP Cloud Radar (processed"
+        if not calibrated_radar: statement+=")"
+        else: statement+=" and calibrated)"
+        print(statement)
+        #######################################################################
+        #######################################################################
+        ### Processed radar
+        print("flag nans")
+        processed_radar["dBZg"]=processed_radar["dBZg"].where(
+                            processed_radar["radar_flag"].isnull(), drop=True)
+        processed_radar["Zg"]=processed_radar["Zg"].where(
+                            processed_radar["radar_flag"].isnull(), drop=True)
+        processed_radar["LDRg"]=processed_radar["LDRg"].where(
+                            processed_radar["radar_flag"].isnull(), drop=True)
+        print("flagging done")
+        surface_Zg=processed_radar["Zg"][:,4]
+        surface_Zg=surface_Zg.where(surface_Zg!=-888.)
+
+        #processed_radar
+        time=pd.DatetimeIndex(np.array(processed_radar["dBZg"].time[:]))
+        #Plotting
+        #C1=axs[0].pcolor(time,y,np.array(processed_radar["dBZg"][:]).T,
+        #        cmap=cmaeri.roma_r,vmin=-30,vmax=30)
+        print("dBZ plotted")
+
+        if inflow_times[0]<outflow_times[-1]:
+            axs[0].axvspan(pd.Timestamp(inflow_times[-1]),
+               pd.Timestamp(internal_times[0]),
+               alpha=0.5, color='grey')
+            axs[0].axvspan(pd.Timestamp(internal_times[-1]),
+               pd.Timestamp(outflow_times[0]),
+               alpha=0.5, color='grey')   
+        else:
+            axs[0].axvspan(pd.Timestamp(outflow_times[-1]),
+               pd.Timestamp(internal_times[0]),
+               alpha=0.5, color='grey')
+            axs[0].axvspan(pd.Timestamp(internal_times[-1]),
+               pd.Timestamp(inflow_times[0]),
+               alpha=0.5, color='grey')   
+
+        #cax1=fig.add_axes([0.95, 0.725, 0.01, 0.15])
+        #cb = plt.colorbar(C1,cax=cax1,orientation='vertical',extend="both")
+        #cb.set_label('Reflectivity (dBZ)')
+        title_str="Processed radar"
+        if calibrated_radar: title_str+=" and calibrated"
+        title_str+=" "+self.flight[0]+" "+ar_of_day
+
+        axs[0].set_title(title_str)
+        axs[0].set_xlabel('')
+        axs[0].set_yticks([0,2000,4000,6000,8000,10000,12000])
+        axs[0].set_ylim([0,12000])
+        axs[0].set_yticklabels(["0","2","4","6","8","10","12"])
+        axs[0].set_xticklabels([])
+        axs[0].set_ylabel("Altitude (km)")
+        axs[0].text(pd.Timestamp(inflow_times[0]),10000,"Inflow")
+        axs[0].text(pd.Timestamp(internal_times[0]),10000,"Internal")
+        axs[0].text(pd.Timestamp(outflow_times[0]),10000,"Outflow")
+        axs[0].set_ylabel("Height (km)")
+
+        # Radar LDR
+        #C2=axs[1].pcolor(time,y,np.array(processed_radar["LDRg"][:].T),
+        #                 cmap=cmaeri.batlowK,vmin=-25, vmax=-10)        
+        axs[1].set_yticks([0,2000,4000,6000,8000,10000,12000])
+        axs[1].set_ylim([0,12000])
+        axs[1].set_yticklabels(["0","2","4","6","8","10","12"])
+        print("LDR plotted")
+        if inflow_times[0]<outflow_times[-1]:
+            axs[1].axvspan(pd.Timestamp(inflow_times[-1]),
+                   pd.Timestamp(internal_times[0]),
+                   alpha=0.5, color='grey')
+            axs[1].axvspan(pd.Timestamp(internal_times[-1]),
+                           pd.Timestamp(outflow_times[0]),
+                           alpha=0.5, color='grey')   
+        else:
+            axs[1].axvspan(pd.Timestamp(outflow_times[-1]),
+               pd.Timestamp(internal_times[0]),
+               alpha=0.5, color='grey')
+            axs[1].axvspan(pd.Timestamp(internal_times[-1]),
+               pd.Timestamp(inflow_times[0]),
+               alpha=0.5, color='grey')   
+        axs[1].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))        
+        axs[1].text(pd.Timestamp(inflow_times[0]),10000,"Inflow")
+        axs[1].text(pd.Timestamp(internal_times[0]),10000,"Internal")
+        axs[1].text(pd.Timestamp(outflow_times[0]),10000,"Outflow")
+        axs[1].set_xticklabels([])
+        axs[1].set_ylabel("Height (km)")
+
+        #cax2=fig.add_axes([0.95, 0.5, 0.01, 0.15])
+        #cb = plt.colorbar(C2,cax=cax2,orientation='vertical',extend="both")
+        #cb.set_label('LDR (dB)')
+        sns.despine(offset=10)
+        axs[2].plot(halo_era5["Interp_Precip"],lw=2,ls="--",
+                    color="k",label="ERA5:"+\
+                    str(round(float(halo_era5["Interp_Precip"].mean()),2)),
+                    zorder=5)
+        axs[2].plot(halo_icon_hmp["Interp_Precip"],lw=3,ls="-",
+                    color="k",label="ICON-NWP:"+\
+                    str(round(float(halo_icon_hmp["Interp_Precip"].mean()),2)),
+                    zorder=6)
+        axs[2].plot(halo_icon_hmp["Interp_Precip"],lw=2,ls="--",
+                    color="w",zorder=7)
+        axs[2].plot(precipitation_rate["mean_rain"],lw=3,color="darkgreen",
+                    label="avg_r:"+str(round(float(\
+                        precipitation_rate["mean_rain"].mean()),2)))
+        axs[2].plot(precipitation_rate["r_norris"],lw=1,color="lightgreen",
+                    label="nor:"+str(round(float(\
+                    precipitation_rate["r_norris"].mean()),2)))
+        
+        axs[2].plot(precipitation_rate["r_palmer"],lw=1,color="mediumseagreen",
+            label="pal:"+str(round(float(\
+            precipitation_rate["r_palmer"].mean()),2)))
+        axs[2].plot(precipitation_rate["r_chandra"],lw=1,color="green",
+            label="cha:"+str(round(float(\
+            precipitation_rate["r_chandra"].mean()),2)))
+        # snow 
+        axs[2].plot(precipitation_rate["mean_snow"],lw=3,color="darkblue",
+                    label="avg_s:"+str(round(float(\
+                    precipitation_rate["mean_snow"].mean()),2)))
+        axs[2].plot(precipitation_rate["s_schoger"],lw=0.5,color="lightblue",
+                    label="sch:"+str(round(float(\
+                    precipitation_rate["s_schoger"].mean()),2)))
+        axs[2].plot(precipitation_rate["s_matrosov"],lw=0.5,color="blue",
+                    label="mat:"+str(round(float(\
+                    precipitation_rate["s_matrosov"].mean()),2)))
+        axs[2].plot(precipitation_rate["s_heymsfield"],lw=0.5,color="cadetblue",
+            label="hey:"+str(round(float(precipitation_rate["s_heymsfield"].mean()),2)))
+
+        if inflow_times[0]<outflow_times[-1]:
+            axs[2].axvspan(pd.Timestamp(inflow_times[-1]),
+               pd.Timestamp(internal_times[0]),
+               alpha=0.5, color='grey')
+            axs[2].axvspan(pd.Timestamp(internal_times[-1]),
+                   pd.Timestamp(outflow_times[0]),
+                   alpha=0.5, color='grey')   
+        else:
+            axs[2].axvspan(pd.Timestamp(outflow_times[-1]),
+               pd.Timestamp(internal_times[0]),
+               alpha=0.5, color='grey')
+            axs[2].axvspan(pd.Timestamp(internal_times[-1]),
+               pd.Timestamp(inflow_times[0]),
+               alpha=0.5, color='grey')   
+
+        axs[2].set_ylim([0,1.0])
+        axs[2].legend(loc="top left",ncol=6,fontsize=font_size-2)
+        axs[2].set_xticks=axs[1].get_xticks()
+        axs[2].set_xticklabels([])
+        axs[2].set_ylabel("Precipitation\nrate ($\mathrm{mmh}^{-1}$)")
+        # Add surface mask
+        # plot AMSR2 sea ice concentration
+        fs = 14
+        fs_small = fs - 2
+        fs_dwarf = fs - 4
+        marker_size = 15
+            
+        bah_df=pd.DataFrame()
+        bah_df["sea_ice"]=pd.Series(data=np.array(\
+                            processed_radar["radar_flag"][:,0]),
+                            index=pd.DatetimeIndex(np.array(\
+                                processed_radar.time[:])))
+        blue_colorbar=cm.get_cmap('Blues_r', 22)
+        blue_cb=blue_colorbar(np.linspace(0, 1, 22))
+        brown_rgb = np.array(colors.hex2color(colors.cnames['brown']))
+        blue_cb[:2, :] = [*brown_rgb,1]
+        newcmp = ListedColormap(blue_cb)
+        im = axs[3].pcolormesh(np.array([\
+                pd.DatetimeIndex(bah_df["sea_ice"].index),
+                pd.DatetimeIndex(bah_df["sea_ice"].index)]),
+                np.array([0, 1]),
+                np.array([bah_df["sea_ice"].values/100]),
+                cmap=newcmp, vmin=-0.1, vmax=1,
+                shading='auto')
+
+        cax = fig.add_axes([0.7, 0.06, 0.1, axs[3].get_position().height])
+        #C1=fig.colorbar(im, cax=cax, orientation='horizontal')
+        #C1.set_label(label='Sea ice [%]',fontsize=fs_small)
+        #C1.ax.tick_params(labelsize=fs_small)
+        axs[3].tick_params(axis='x', labelleft=False, 
+                           left=False,labelsize=fs_small)
+        axs[3].tick_params(axis='y', labelleft=False, left=False)
+        axs[3].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+
+        #time_var=bah_df.index
+        # time extent:
+        #time_extent = Measurement_Instruments_QL.\
+        #                        HALO_Devices.\
+        #                            numpydatetime64_to_datetime(time_var[-1]) -\
+        #                        Measurement_Instruments_QL.\
+        #                            HALO_Devices.numpydatetime64_to_datetime(time_var[0])        
+        #axs[3].set_xlabel(f"Time (HH:MM) of {str(time_var[round(len(time_var)/2)].values)[:10]}",
+        #                         fontsize=fs_small)
+
+        # Limit axis spacing:
+        plt.subplots_adjust(hspace=0.35)			# removes space between subplots
+        box = axs[3].get_position()        
+        box.y0 = box.y0 + 0.025
+        box.y1 = box.y1 + 0.025        
+        axs[3]=axs[3].set_position(box)
+        radar_str="processed_radar"
+        #radar_var="zg"
+        if calibrated_radar: radar_str="calibrated and "+radar_str
+        fig_name=self.flight[0]+"_"+ar_of_day+"_Rain_internal_"+\
+                    radar_str+"_"+reflectivity_for_snow+".png"
+        fig.savefig(self.plot_path+fig_name,dpi=300,bbox_inches="tight")
+        print("Figure saved as:",self.plot_path+fig_name)
+        return radar_str
+        
     def plot_radar_clutter_comparison(self, clutter_removal_version="0.2"):
         # this function plot two radar attitude corrected reflectivity values.
         # The one is without clutter removal and hence version 0.1 per default.
