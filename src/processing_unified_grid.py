@@ -428,14 +428,18 @@ class Radiometer_Processing():
         return ds
     
     def calibrate_radiometer_TBs(self,ds):
-        from Measurement_Instruments import HALO_Devices, HAMP
+        from measurement_instruments_ql import HALO_Devices, HAMP
         HALO_Devices_cls=HALO_Devices(self.cfg_dict)
         HAMP_cls=HAMP(HALO_Devices_cls)
         HAMP_cls.access_HAMP_TB_calibration_coeffs()
         calib_coeff_ds=HAMP_cls.tb_calib_coeff_ds
         calib_coeff_da=calib_coeff_ds.sel({"date":\
                         str([*self.cfg_dict["Flight_Dates_used"].values][0])})
-        calib_coeff_da=calib_coeff_da.loc[{"frequency":ds.uniRadiometer_freq}]
+        try:
+            calib_coeff_da=calib_coeff_da.loc[{"frequency":ds.uniRadiometer_freq}]
+        except:
+            calib_coeff_da=calib_coeff_da.loc[{"freq":ds.uniRadiometer_freq}]
+            
         ds=ds.sortby("uniRadiometer_freq")
         ds_new=ds.assign(TB=ds["TB"]*calib_coeff_da["slope"].values+\
                          calib_coeff_da["offset"].values)

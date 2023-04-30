@@ -954,8 +954,11 @@ class HAMP(HALO_Devices):
             self.calib_processed_hamp_ds=xr.open_dataset(data_file)
                 
     def access_HAMP_TB_calibration_coeffs(self):
-       self.calibration_path=self.major_data_path+"calibration_coeffs/"
-       self.calibration_file="clear_sky_sonde_comparison_ALL_J3v0.9.2_radiometer_daily.nc"
+       self.calibration_path=self.major_data_path+\
+           "HAMP_MWR_TB_clear_sky_offset_correction/"#"calibration_coeffs/"
+       #self.calibration_file="clear_sky_sonde_comparison_ALL_J3v0.9.2_radiometer_daily.nc"
+       self.calibration_file="HALO-AC3_HALO_HAMP_TB_offset_correction_"+\
+                               self.date+".nc"
        self.tb_calib_coeff_ds=xr.open_dataset(self.calibration_path+\
                                          self.calibration_file)
     

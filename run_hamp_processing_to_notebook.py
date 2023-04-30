@@ -16,7 +16,8 @@ def main(campaign_name,rf):
     actual_working_path=os.getcwd()
     airborne_data_importer_path=working_path+"/Work/GIT_Repository/"+\
                                 "hamp_processing_py/"+\
-                                    "hamp_processing_python/" # This is also the major path where your data will be stored
+                                    "hamp_processing_python/" 
+    # This is also the major path where your data will be stored
                                     
     airborne_processing_module_path=actual_working_path+"/src/"
     airborne_plotting_module_path=actual_working_path+"/plotting/"
@@ -54,7 +55,7 @@ def main(campaign_name,rf):
                                  "RF15":"20200218"}
         
     Flight_Dates["HALO_AC3"]={"RF00":"20220225",
-                              "RF01":"20220311", # if this is the transfer flight
+                              "RF01":"20220311", # this is the transfer flight
                               "RF02":"20220312",
                               "RF03":"20220313",
                               "RF04":"20220314",
@@ -75,11 +76,11 @@ def main(campaign_name,rf):
     
     
     #%%
-    instruments_to_unify=[#"radar",
+    instruments_to_unify=["bahamas",
                           #"dropsondes",
-                          #"radar",
-                          "radiometer",#"radar"] # default is bahamas, dropsondes, radar, radiometer.
-                          ]
+                          "radar",
+                          "radiometer",#"radar"] 
+                          ] # default bahamas, dropsondes, radar, radiometer.
     #%%
     # load config files
     cfg=config_handler.Configuration(major_path=airborne_data_importer_path)
@@ -101,7 +102,8 @@ def main(campaign_name,rf):
     #%%
     # Comments for data files
     # Specify comment to be included into data files
-    comment = 'Preliminary data! Uncalibrated Data. Only use for preliminary work!'
+    comment = 'Preliminary data! Uncalibrated Data.'+\
+                ' Only use for preliminary work!'
     # Specify contact information
     contact = 'henning.dorff@uni-hamburg.de'
     
@@ -114,9 +116,9 @@ def main(campaign_name,rf):
     # %% Specify time frame for data conversion
     flight=rf
     # % Start date
-    start_date =Flight_Dates[campaign][flight]#"20220313" #"20220225"#"20200205"#'20200131';  
+    start_date =Flight_Dates[campaign][flight]  
     # % End date
-    end_date = Flight_Dates[campaign][flight]#"20220313"#"20220225"#"20200205"#'20200201';
+    end_date = Flight_Dates[campaign][flight]
     
     #%%Define processing steps
     #  Set version information
@@ -146,7 +148,7 @@ def main(campaign_name,rf):
                              "add_radar_mask_values":True,    # if false mask 
                                                                        # is not added to the data
                                       
-                             "version":1,
+                             "version":2,
                              "subversion":6,
                              "quicklooks":False,               # default True
                              "missing_value":-888,
@@ -166,16 +168,18 @@ def main(campaign_name,rf):
                                       "seasurface_mask":1,
                                       "num_RangeGates_for_sfc":4})
     cfg.add_entries_to_config_object(processing_cfg_name,
-                                     {"calibrate_radiometer":False, # 1.x
+                                     {"calibrate_radiometer":True, # 1.x
                                       "calibrate_radar":True})     # 1.x
     
     #%%
     processing_config_file=cfg.load_config_file(processing_cfg_name)
     
-    processing_config_file["Input"]["data_path"]=processing_config_file["Input"][\
-                                                    "campaign_path"]+"Flight_Data/"
-    processing_config_file["Input"]["device_data_path"]=processing_config_file["Input"][\
-                                                    "data_path"]+campaign+"/"
+    processing_config_file["Input"]["data_path"]=\
+                                processing_config_file["Input"][\
+                                    "campaign_path"]+"Flight_Data/"
+    processing_config_file["Input"]["device_data_path"]=\
+                                processing_config_file["Input"][\
+                                    "data_path"]+campaign+"/"
     
     prcs_cfg_dict=dict(processing_config_file["Input"])    
     
@@ -193,48 +197,39 @@ def main(campaign_name,rf):
     
     # % Check structure of folders for data files
     #checkfolderstructure(getPathPrefix, flightdates_use)
+
     #%% Raw Data Plotting
     from measurement_instruments_ql import HALO_Devices, RADAR, HAMP
-    date=start_date#flightdates_use.values[0]#"20200205"#"20200131"
+    date=start_date#flightdates_use.values[0]
     
     HALO_Devices_cls=HALO_Devices(prcs_cfg_dict)
     Radar_cls=RADAR(HALO_Devices_cls)
     HAMP_cls=HAMP(HALO_Devices_cls)
     # Open raw data
     Radar_cls.open_raw_radar_data(flight,date)
-    raw_radar_ds=Radar_cls.raw_radar_ds
-    #HAMP_cls.open_raw_hamp_data()
-    
-    #clutter_radar=Radar_cls.open_version_specific_processed_radar_data(
-    #            version="0.1")
-    #clean_radar=Radar_cls.open_version_specific_processed_radar_data(
-    #            version="0.2")
-            
+    raw_radar_ds=Radar_cls.raw_radar_ds            
     
     import halodataplot as halo_data_plotter
     
     Quick_Plotter=halo_data_plotter.Quicklook_Plotter(prcs_cfg_dict)
     Radiometer_Quicklook=halo_data_plotter.Radiometer_Quicklook(prcs_cfg_dict)
-    #Radiometer_Quicklook.radiometer_tb_dict=HAMP_cls.raw_hamp_tb_dict
     Radar_Quicklook=halo_data_plotter.Radar_Quicklook(prcs_cfg_dict) 
-    #Radar_Quicklook.plot_radar_clutter_comparison(clutter_removal_version="0.2")
-    
-    #sys.exit()
+
     perform_raw_quicklooks=False
     if perform_raw_quicklooks:
-    #    pass
         Radar_Quicklook.plot_raw_radar_quicklook(raw_radar_ds)
         # CFAD plotting requires radar reflectivity as dataframe and 
         # then routine plot_single_radar_cfad also calculates the cfad 
         # by status method "calc_radar_cfad" in Data_Plotter
-        raw_radar_reflectivity=pd.DataFrame(data=np.array(raw_radar_ds["dBZg"].T[:]),
-                                            index=np.array(raw_radar_ds["time"]),
-                                            columns=np.array(raw_radar_ds["range"][:]))
-    #    Radar_Quicklook.plot_single_radar_cfad(raw_radar_reflectivity)
+        raw_radar_reflectivity=pd.DataFrame(
+                                    data=np.array(raw_radar_ds["dBZg"].T[:]),
+                                    index=np.array(raw_radar_ds["time"]),
+                                    columns=np.array(raw_radar_ds["range"][:]))
+        #Radar_Quicklook.plot_radar_clutter_comparison(clutter_removal_version="0.2")
+        #Radar_Quicklook.plot_single_radar_cfad(raw_radar_reflectivity)
        
     # %% Processing
     print("=========================== Processing ===============================")
-    #for instr in instruments_to_unify:
     if "radar" in instruments_to_unify:
             if performance.str2bool(prcs_cfg_dict["correct_attitude"]):
                 # Correct radar data for aircraft attitude
@@ -242,17 +237,21 @@ def main(campaign_name,rf):
                 radar_attitude.run_att_correction(flightdates_use, prcs_cfg_dict)
     
             if not performance.str2bool(prcs_cfg_dict["correct_attitude"]):
-                prcs_cfg_dict["radar_outDir"]=prcs_cfg_dict["device_data_path"]+"radar_mira/"
+                prcs_cfg_dict["radar_outDir"]=\
+                    prcs_cfg_dict["device_data_path"]+"radar_mira/"
+                # Even if explicitly desired to not attitude correct radarfiles,
+                # it is checked here, whether the corrected-file already exists
+
                 for flight in flightdates_use:
-                    # Even if explicitly desired to not attitude correct radar files,
-                    # it is checked here, whether the corrected-file already exists
-                    if len(glob.glob(prcs_cfg_dict["radar_outDir"]+"*"+str(flight)+"*.nc"))>=1:
-                        print("Flight is already attitude-corrected, so skip this step")
+                    if len(glob.glob(prcs_cfg_dict["radar_outDir"]+"*"+\
+                                     str(flight)+"*.nc"))>=1:
+                        print("Flight is already attitude-corrected,",
+                              " so skip this step")
             
                     else:
                         new_flightdates_use=pd.Series(flight,
                                   index=flightdates_use[\
-                                            flightdates_use==int(flight)].index)
+                                        flightdates_use==int(flight)].index)
                         radar_attitude.run_att_correction(
                                 new_flightdates_use,prcs_cfg_dict)
     
@@ -261,29 +260,26 @@ def main(campaign_name,rf):
                 radar_masks.run_make_masks(flightdates_use, prcs_cfg_dict)
     
     if performance.str2bool(prcs_cfg_dict["unify_grid"]):
-            # Unify data from bahamas, dropsondes, radar, radiometer onto common grid
+            # Unify data from bahamas, dropsondes,
+            # radar, radiometer onto common grid
             unigrid.run_unify_grid(flightdates_use,prcs_cfg_dict)
     
-    # if quicklooks
-    #     % Plot quicklooks for latest version
-    #     plotHAMPQuicklook_sepFiles(flightdates_use)
-    # end
     return None
 
 if __name__=="__main__":
    campaign="HALO_AC3"
-   research_flights_to_process=["RF01",
-                                "RF02",
-                                "RF03",
-                                "RF04",
+   research_flights_to_process=[#"RF01",
+                                #"RF02",
+                                #"RF03",
+                                #"RF04",
                                 "RF05",
                                 "RF06",
                                 "RF07",
                                 "RF08",#,
                                 "RF09",
                                 "RF10",#
-                                #"RF11",
-                                #"RF12",
+                                "RF11",
+                                "RF12",
                                 #"RF13",
                                 #"RF14",
                                 #"RF15",
@@ -294,8 +290,3 @@ if __name__=="__main__":
    
    for research_flight in research_flights_to_process:
        main(campaign,research_flight)
-   #globals().clear()
-   #campaign="HALO_AC3"
-   #research_flights_to_process=["RF13"#,"RF14","RF15","RF16","RF17","RF18"
-   #                             ]
-   
