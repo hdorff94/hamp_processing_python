@@ -375,9 +375,9 @@ class CPGN_netCDF():
         # subversion_number has to be found.
         if for_calibrated_file:
             if not date=="" and not date =="": 
-                nc_path=nc_path+device+"_"+date+"_v1*.nc"
+                nc_path=nc_path+device+"_"+date+"_v2*.nc"
             else:
-                nc_path=nc_path+"_v1*.nc"
+                nc_path=nc_path+"_v2*.nc"
         else:
             if not date=="" and not date =="": 
                 nc_path=nc_path+device+"_"+date+"_v0*.nc"

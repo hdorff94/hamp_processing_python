@@ -370,10 +370,14 @@ class Radiometer_Quicklook(Quicklook_Plotter):
                                columns=np.array(
                                    self.radiometer_tb_dict.uniRadiometer_freq[:]).\
                                    round(2).astype(str))
-            
-            Tb_11990_df=Tb_df.iloc[:,6:11]
-            Tb_183_df=Tb_df.iloc[:,0:6]
-            Tb_KV_df=Tb_df.iloc[:,11::]
+            #print("Tb_df:",Tb_df)
+            Tb_KV_df=Tb_df.loc[:,["22.24","23.04","23.84","25.44","26.24",
+                                  "27.84","31.4","50.3","51.76","52.8",
+                                  "53.75","54.94","56.66","58.0"]]
+            print("TBKVDF:",Tb_KV_df.columns)
+            Tb_183_df=Tb_df.loc[:,["183.91","184.81","185.81",
+                                    "186.81","188.31","190.81"]]
+            Tb_11990_df=Tb_df.loc[:,["90.0","120.15","121.05","122.95","127.25"]]
         
         if not np.isnan(hourly):
             print("Plot for Hour ",hourly)
@@ -1167,8 +1171,8 @@ class Radar_Quicklook(Quicklook_Plotter):
         #processed_radar
         time=pd.DatetimeIndex(np.array(processed_radar["dBZg"].time[:]))
         #Plotting
-        #C1=axs[0].pcolor(time,y,np.array(processed_radar["dBZg"][:]).T,
-        #        cmap=cmaeri.roma_r,vmin=-30,vmax=30)
+        C1=axs[0].pcolor(time,y,np.array(processed_radar["dBZg"][:]).T,
+                cmap=cmaeri.roma_r,vmin=-30,vmax=30)
         print("dBZ plotted")
 
         if inflow_times[0]<outflow_times[-1]:
@@ -1186,9 +1190,9 @@ class Radar_Quicklook(Quicklook_Plotter):
                pd.Timestamp(inflow_times[0]),
                alpha=0.5, color='grey')   
 
-        #cax1=fig.add_axes([0.95, 0.725, 0.01, 0.15])
-        #cb = plt.colorbar(C1,cax=cax1,orientation='vertical',extend="both")
-        #cb.set_label('Reflectivity (dBZ)')
+        cax1=fig.add_axes([0.95, 0.725, 0.01, 0.15])
+        cb = plt.colorbar(C1,cax=cax1,orientation='vertical',extend="both")
+        cb.set_label('Reflectivity (dBZ)')
         title_str="Processed radar"
         if calibrated_radar: title_str+=" and calibrated"
         title_str+=" "+self.flight[0]+" "+ar_of_day
@@ -1206,8 +1210,8 @@ class Radar_Quicklook(Quicklook_Plotter):
         axs[0].set_ylabel("Height (km)")
 
         # Radar LDR
-        #C2=axs[1].pcolor(time,y,np.array(processed_radar["LDRg"][:].T),
-        #                 cmap=cmaeri.batlowK,vmin=-25, vmax=-10)        
+        C2=axs[1].pcolor(time,y,np.array(processed_radar["LDRg"][:].T),
+                         cmap=cmaeri.batlowK,vmin=-25, vmax=-10)        
         axs[1].set_yticks([0,2000,4000,6000,8000,10000,12000])
         axs[1].set_ylim([0,12000])
         axs[1].set_yticklabels(["0","2","4","6","8","10","12"])
@@ -1233,9 +1237,9 @@ class Radar_Quicklook(Quicklook_Plotter):
         axs[1].set_xticklabels([])
         axs[1].set_ylabel("Height (km)")
 
-        #cax2=fig.add_axes([0.95, 0.5, 0.01, 0.15])
-        #cb = plt.colorbar(C2,cax=cax2,orientation='vertical',extend="both")
-        #cb.set_label('LDR (dB)')
+        cax2=fig.add_axes([0.95, 0.5, 0.01, 0.15])
+        cb = plt.colorbar(C2,cax=cax2,orientation='vertical',extend="both")
+        cb.set_label('LDR (dB)')
         sns.despine(offset=10)
         axs[2].plot(halo_era5["Interp_Precip"],lw=2,ls="--",
                     color="k",label="ERA5:"+\
@@ -1319,9 +1323,9 @@ class Radar_Quicklook(Quicklook_Plotter):
                 shading='auto')
 
         cax = fig.add_axes([0.7, 0.06, 0.1, axs[3].get_position().height])
-        #C1=fig.colorbar(im, cax=cax, orientation='horizontal')
-        #C1.set_label(label='Sea ice [%]',fontsize=fs_small)
-        #C1.ax.tick_params(labelsize=fs_small)
+        C1=fig.colorbar(im, cax=cax, orientation='horizontal')
+        C1.set_label(label='Sea ice [%]',fontsize=fs_small)
+        C1.ax.tick_params(labelsize=fs_small)
         axs[3].tick_params(axis='x', labelleft=False, 
                            left=False,labelsize=fs_small)
         axs[3].tick_params(axis='y', labelleft=False, left=False)
@@ -1345,7 +1349,7 @@ class Radar_Quicklook(Quicklook_Plotter):
         axs[3]=axs[3].set_position(box)
         radar_str="processed_radar"
         #radar_var="zg"
-        if calibrated_radar: radar_str="calibrated and "+radar_str
+        if calibrated_radar: radar_str="calibrated_and_"+radar_str
         fig_name=self.flight[0]+"_"+ar_of_day+"_Rain_internal_"+\
                     radar_str+"_"+reflectivity_for_snow+".png"
         fig.savefig(self.plot_path+fig_name,dpi=300,bbox_inches="tight")
