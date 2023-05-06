@@ -163,7 +163,7 @@ def replace_fill_and_missing_values_to_nan(ds,variables):
 class Quicklook_Plotter():
     def __init__(self,cfg_dict):
         self.cfg_dict=cfg_dict
-        self.base_plot_path= self.cfg_dict["campaign_path"]+"Flight_Data/"+\
+        self.base_plot_path= self.cfg_dict["campaign_path"]+"/Flight_Data/"+\
                                 self.cfg_dict["campaign"]+"/plots/"
         
         # Define matplotlib Font Size
