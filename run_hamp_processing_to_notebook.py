@@ -76,10 +76,10 @@ def main(campaign_name,rf):
     
     
     #%%
-    instruments_to_unify=["bahamas",
+    instruments_to_unify=[#"bahamas",
                           #"dropsondes",
                           "radar",
-                          "radiometer",#"radar"] 
+                          #"radiometer",#"radar"] 
                           ] # default bahamas, dropsondes, radar, radiometer.
     #%%
     # load config files
@@ -274,18 +274,18 @@ if __name__=="__main__":
                                 #"RF04",
                                 #"RF05",
                                 #"RF06",
-                                "RF07",
-                                "RF08",#,
-                                "RF09",
-                                "RF10",#
-                                "RF11",
-                                "RF12",
+                                #"RF07",
+                                #"RF08",#,
+                                #"RF09",
+                                #"RF10",#
+                                #"RF11",
+                                #"RF12",
                                 "RF13",
                                 "RF14",
-                                "RF15",
-                                "RF16",
-                                "RF17",
-                                "RF18"
+                                #"RF15",
+                                #"RF16",
+                                #"RF17",
+                                #"RF18"
                                 ]
    
    for research_flight in research_flights_to_process:

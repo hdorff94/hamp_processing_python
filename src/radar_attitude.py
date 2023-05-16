@@ -348,7 +348,7 @@ def correct_att_smart(radar_fname,version_number,radarOut_dir,
                                      var,' under ''var_edit''.')
                 
     # Copy and slightly modify global attributes from radar standard file 
-    CPGN_netCDF=Campaign_netCDF.CPGN_netCDF()
+    CPGN_netCDF=campaign_netcdf.CPGN_netCDF()
     outfile_ds = CPGN_netCDF.copy_modify_netCDF_global_att(radar_fname,
                                                            outfile_ds,
                                                            cfg_dict)
@@ -942,6 +942,7 @@ def correct_att_bahamas(radar_fname,version_number,radarOut_dir,
     ## Temporary Ze
     if 'Ze' in var_edit:
         # Zg(Zg==missingvalue) = -Inf;
+        print(radar_data_corr["Ze"].attrs)
         # Calculate dBZ
         # using the emath extension to get complexe values and -inf instead of nan 
         dBZe = np.array(10*np.emath.log10(radar_data_corr['Ze'][:]))
@@ -962,7 +963,8 @@ def correct_att_bahamas(radar_fname,version_number,radarOut_dir,
             dBZe_ds=xr.DataArray(dBZe.astype(np.float32),
                          coords=outfile_ds.coords,
                          dims=outfile_ds.dims).T
-        dBZe_ds.attrs={"long_name"  :'Reflectivity dBZe (Hydrometeors)',
+        dBZe_ds.attrs={"long_name"  :'Cross-Polarised Equivalent Reflectivity',
+                       #'Reflectivity dBZe (Hydrometeors)',
                    "units"      :' ',
                    "yrange"     : [np.nanmin(np.nanmin(dBZe)),
                                    np.nanmax(np.nanmax(dBZe))]}
@@ -1149,9 +1151,7 @@ def perform_att_comb(convertmarker,flight,cfg_dict):
     
     #Check: Look for files
     #fileNames = glob.glob(radarOut_dir+version_number+'.2.nc');
-    #print('Found the following .2 version files:')
-    #print(fileNames)
-            #% Loop files if multiple files from one flight exist
+    #% Loop files if multiple files from one flight exist
             #for j=1:length(fileNameUse)
                 #% Concatenate path and file name
                 #RadarFile = fileNameUse{j};
@@ -1162,16 +1162,6 @@ def perform_att_comb(convertmarker,flight,cfg_dict):
                 #% Combine radar data with Smart data
                 #radarCorrectAtt_smart(RadarFile,versionNumber,
                                         #radarOutDir, missingvalule,'nolobes')
-    #fprintf('%s\n','')
-        #disp('Finished processing')
-
-        #% Look for files
-        #fileNames = listFiles([radarOutDir '*' versionNumber '.1.nc']);
-        #fprintf('%s\n','')
-    
-        #% Display
-        #%     disp('Found the following .2 version files:')
-        #%     fprintf('\t%s\n',fileNames{:})
     
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 def run_att_correction(flight_dates,cfg_dict,use_smart=False):

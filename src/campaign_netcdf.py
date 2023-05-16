@@ -134,6 +134,9 @@ class CPGN_netCDF():
             extra_info_arg="sonde"+"_extra_info"
         extra_info_tmp=device_dict[extra_info_arg]
         extra_info_tmp.index=extra_info_tmp["unify_varname"]
+        if "uniRadar_Ze" in extra_info_tmp.index:
+            extra_info_tmp["variable"].loc["uniRadar_Ze"]=\
+                "Cross Polarised Equivalent Reflectivity Ze"
         del device_dict[extra_info_arg]
         # Loop over all dimensions
         coords_dict={}

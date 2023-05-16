@@ -838,6 +838,8 @@ def unifyGrid_radar(flight,uni_df,
             uni_df_radar[var].loc[radar_time,:]=radar_df.iloc[:,0:uni_height.shape[0]]
             
             units_temp      = radar_ds[var].attrs["units"]
+            if var=="Ze":
+                long_name_temp="Cross-polarised Equivalent Reflectivity. Caution not common Z_e."
             long_name_temp  = radar_ds[var].attrs["long_name"]
             
             globals()["uniRadar_"+var]= uni_df_radar[var]

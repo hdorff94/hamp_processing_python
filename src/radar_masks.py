@@ -220,10 +220,8 @@ def make_haloLandMask(flight_dates,outfile,cfg_dict,add_sea_ice_mask=False,
                 radar_ds = radiometer_ds.copy()
             # Read position data and add it to a dataframe that includes the 
             # land mask to built
-            #radar_pos= pd.DataFrame(data=np.nan,
-            #            columns=["lat","lon","landmask"],
-            #            index=pd.DatetimeIndex(np.array(radar_ds["time"])))
-        
+            #radar_pos= pd.DataFrame(data=np.nan,columns=["lat","lon","landmask"],
+            #            index=pd.DatetimeIndex(np.array(radar_ds["time"])))        
             #radar_pos["lat"]      = np.array(radar_ds["IRS_LAT"][:])
             #radar_pos["lon"]      = np.array(radar_ds["IRS_LON"][:])
             #radar_pos["landmask"] = np.nan
@@ -235,7 +233,6 @@ def make_haloLandMask(flight_dates,outfile,cfg_dict,add_sea_ice_mask=False,
             
     else:    
         # Define dates to use
-        # flightdates_mask = get_campaignDates('2016');
         performance=Performance.performance()
         # Read data
         print("Read landmask")
@@ -312,7 +309,6 @@ def make_haloLandMask(flight_dates,outfile,cfg_dict,add_sea_ice_mask=False,
     if refer_to_radiometer:
         landmask_file="Radiometer_"+landmask_file
     radar_pos.to_csv(path_or_buf=outpath+landmask_file,index=True)
-    #sys.exit()
     print("Land mask saved as:", outpath+landmask_file)    
 
 
@@ -409,10 +405,6 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
         # Find radar files from day. 
         # ! Obs: use version 2.3 for this analysis since side lobes during
         # turns have not been removed in this data set
-        # if str2double(flightdates_mask)<20160000
-        # radarfiles = listFiles([getPathPrefix 'NARVAL-I_campaignData/all_nc/*' flightdates_mask{f} 
-        # '*v2.3*.nc'],'fullpath');
-        # else
         
         file="*"+str(flight)+"*_*"+cfg_dict["version"]+"."+cfg_dict["subversion"]+"*.nc"
         radar_fpath = glob.glob(cfg_dict["device_data_path"]+"radar_mira/"+file)
@@ -433,10 +425,6 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
         landmask_df.index=pd.DatetimeIndex(landmask_df["Unnamed: 0"])
         del landmask_df["Unnamed: 0"]
         
-        # load noisemask for given day
-        #noisemask_df=pd.read_csv(outpath+"Noise_Mask_"+str(flight)+".csv")
-        # landmask_nan(landmask_nan==0) = nan;
-        # landmask_flight = landMask{ind};
         
         # % Read radar data
         radar_ds = xr.open_dataset(radar_fpath[0])
@@ -474,8 +462,7 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
         z_df.loc[noise_mask.loc[noise_mask==1].index]=np.nan        
         # Calculate maximum reflectivity for each profile
         zMax = z_df.max(axis=1)
-        #zMax.loc[landmask_df[mask_arg].loc[landmask_df[mask_arg]==-0.1].index]\
-        #        = np.nan ---> has this to be commented out?
+        
         av_zMax = zMax.mean()
         std_zMax = zMax.std()
         # Preallocate
@@ -586,9 +573,6 @@ def make_radar_sea_surface_mask(flightdates, outfile, cfg_dict):
     # Preallocate
     radar_sea_surfaceMask = {}
     
-    #ind_sea_surf = z_low_level[z_low_level>=30].sum(axis=1)
-        #ind_sea_surf = ind_sea_surf.replace(to_replace=0,value=np.nan)
-    
     # % Loop all dates from file
     for f in flightdates.index:
         flight=flightdates.loc[f]
@@ -638,15 +622,6 @@ def make_radar_sea_surface_mask(flightdates, outfile, cfg_dict):
         landmask_df.index=pd.DatetimeIndex(landmask_df["Unnamed: 0"])
         del landmask_df["Unnamed: 0"]
         
-        #load noise mask for given day
-        #noise_file=outpath+"Noise_Mask_"+str(flight)+".csv"
-        #if os.path.exists(noise_file):
-        #    noise_mask=pd.read_csv(noise_file)
-        #    noise_mask.index=pd.DatetimeIndex(noise_mask["Unnamed: 0"])
-        #    noise_mask=pd.Series(noise_mask.iloc[:,1])
-        #else:
-        #    raise Exception("no dBZ is calculated")
-            
         # Find instances where there is radar signal in any of the lowest
         # range gates defined
         range_gates=int(cfg_dict["num_rangegates_for_sfc"])
@@ -776,9 +751,8 @@ def make_radar_info_mask(flightdates,outfile,cfg_dict):
         radarInfoMask["key"].iloc[0:5]=[*key.keys()]
         radarInfoMask["mask_value"]=np.nan
         radarInfoMask["mask_value"].iloc[0:5]=[*key.values()]
+        
         # % Plot and save figure with radar mask if specified in varargin
-        # if nargin>2 && strcmp(varargin{1},'figures')
-            
         #     % Load Bahamas data
         #     bahamasfile = listFiles([getPathPrefix getCampaignFolder(flightdates_mask{i})  'all_nc/*bahamas*' flightdates_mask{i} '*.nc'],'fullpath');
         #     t = ncread(bahamasfile{end},'time');
@@ -830,11 +804,6 @@ def run_make_masks(flightdates, cfg_dict):
     None.
 
     """
-    
-
-
-    #campaign = getCampaignName(flightdates(1));
-
     # Define output file
     outfile_path=cfg_dict["device_data_path"]+"auxiliary/"
     if not os.path.exists(outfile_path):
@@ -842,9 +811,7 @@ def run_make_masks(flightdates, cfg_dict):
     cfg_dict["radar_mask_path"]=outfile_path
     outfile = outfile_path+"radar_mask_"+cfg_dict["campaign"]+".npy"
     
-    
     # Define dates to use
-    # flightdates = get_campaignDates(campaign);
     
     # Land Mask
     add_sea_ice_mask=False
@@ -888,7 +855,6 @@ def run_make_masks(flightdates, cfg_dict):
         make_radar_sea_surface_mask(flightdates, outfile, cfg_dict)
     else:
         print('Skipping sea surface mask...')
-    
     
     print('Combining all masks into one')
     make_radar_info_mask(flightdates,outfile,cfg_dict)

@@ -1202,7 +1202,7 @@ class RADAR(HALO_Devices):
                         "RF17":-1.3,
                         "mean":-1.6}
             if flight in [*dB_offsets.keys()]:
-                self.dB_offset=dB_offsets[flight] #--> to be determined by F. Ewald
+                self.dB_offset=dB_offsets[flight] # determined by F. Ewald
             else:
                 self.dB_offset=dB_offsets["mean"]
     def show_calibration(self):
