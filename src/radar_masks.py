@@ -338,10 +338,10 @@ def make_radar_noise_calibration_mask(flightdates,outfile,
         file="*"+str(flight)+"*_*"+cfg_dict["version"]+"."+cfg_dict["subversion"]+"*.nc"
         radar_fpath = glob.glob(cfg_dict["device_data_path"]+"radar_mira/"+file)
         radar_ds = xr.open_dataset(radar_fpath[0])
-        
+        radar_time_index=pd.DatetimeIndex(np.array(radar_ds["time"]))
         # Read time and preallocate noise/calibration mask
         mask_series=pd.Series(data=np.zeros(radar_ds["time"].shape[0]),
-                              index=pd.DatetimeIndex(np.array(radar_ds["time"])))
+                              index=radar_time_index)
         
         # If an entry for this date exists
         if ind_use:        
@@ -358,6 +358,11 @@ def make_radar_noise_calibration_mask(flightdates,outfile,
         # calibration
         if mask_type=="calibration":
             outvar = 'Calibration_Mask_'
+            # check for calibration parameter
+            calibration_marker=pd.Series(data=np.array(radar_ds["npw1"][:]),
+                                         index=radar_time_index)
+            mask_series.loc[mask_series[calibration_marker<100].index]=1.0
+
         else:
             outvar = 'Noise_Mask_'
 
@@ -742,7 +747,8 @@ def make_radar_info_mask(flightdates,outfile,cfg_dict):
                                              columns=radar_ds["height"],
                                              index=calibration_mask_df.index)
             
-                radarInfoMask.loc[calibration_mask_df[calibration_mask_df==1].index] = 4
+                radarInfoMask.loc[\
+                    calibration_mask_df[calibration_mask_df==1.0].index] = 4
             
             # make noise at last to overwrite all other masks
             if noise_mask_df is not None:

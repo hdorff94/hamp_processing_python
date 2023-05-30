@@ -79,7 +79,7 @@ def main(campaign_name,rf):
     instruments_to_unify=[#"bahamas",
                           #"dropsondes",
                           "radar",
-                          #"radiometer",#"radar"] 
+                          "radiometer",#"radar"] 
                           ] # default bahamas, dropsondes, radar, radiometer.
     #%%
     # load config files
@@ -149,7 +149,7 @@ def main(campaign_name,rf):
                                                                        # is not added to the data
                                       
                              "version":2,
-                             "subversion":6,
+                             "subversion":7,
                              "quicklooks":False,               # default True
                              "missing_value":-888,
                              "fill_value": np.nan,
@@ -269,19 +269,19 @@ def main(campaign_name,rf):
 if __name__=="__main__":
    campaign="HALO_AC3"
    research_flights_to_process=[#"RF01",
-                                #"RF02",
-                                #"RF03",
-                                #"RF04",
-                                #"RF05",
-                                #"RF06",
+                                "RF02",
+                                "RF03",
+                                "RF04",
+                                "RF05",
+                                "RF06",
                                 #"RF07",
                                 #"RF08",#,
                                 #"RF09",
                                 #"RF10",#
                                 #"RF11",
                                 #"RF12",
-                                "RF13",
-                                "RF14",
+                                #"RF13",
+                                #"RF14",
                                 #"RF15",
                                 #"RF16",
                                 #"RF17",
