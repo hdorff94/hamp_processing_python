@@ -269,11 +269,11 @@ def main(campaign_name,rf):
 if __name__=="__main__":
    campaign="HALO_AC3"
    research_flights_to_process=[#"RF01",
-                                "RF02",
-                                "RF03",
-                                "RF04",
-                                "RF05",
-                                "RF06",
+                                #"RF02",
+                                #"RF03",
+                                #"RF04",
+                                #"RF05",
+                                #"RF06",
                                 #"RF07",
                                 #"RF08",#,
                                 #"RF09",
