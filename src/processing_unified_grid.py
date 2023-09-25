@@ -420,7 +420,8 @@ class Radiometer_Processing():
         del surface_mask["Unnamed: 0"]
         ds["surface_mask"]=xr.DataArray(data=surface_mask["sea_ice"],
                                         coords={"time":ds.time.values})
-        
+        ds["surface_mask"].attrs={"mask values":['0 : sea', '0-1 : sea_ice_cover',
+                                            '-.1 : surface',]}
         # loc radar mask to unified grid
         
         # interpolate to get rid off single grid values
@@ -587,7 +588,7 @@ class Radar_Processing():
         radar_mask.index=pd.DatetimeIndex(radar_mask["Unnamed: 0"])
         del radar_mask["Unnamed: 0"]
         mask_values=[]
-        for i in range(4):
+        for i in range(5):
             mask_values.append(str(radar_mask.iloc[i,-2])+\
                 " : "+str(radar_mask.iloc[i,-1]))
         
@@ -631,7 +632,8 @@ class Radar_Processing():
         # Load unified bahamas dataset
         bahamas_path=self.cfg_dict["campaign_path"]+"Flight_Data/"+\
                     self.cfg_dict["campaign"]+"/all_nc/"
-        bahamas_fname="bahamas_"+self.cfg_dict["flight_date_used"]+"_v"+\
+        bahamas_fname="HALO_bahamas_unified_"+self.cfg_dict["RF"]+"_"+\
+            self.cfg_dict["flight_date_used"]+"_v"+\
             self.cfg_dict["version"]+"."+self.cfg_dict["subversion"]+".nc"
         
         bahamas_ds=xr.open_dataset(bahamas_path+bahamas_fname)
@@ -663,10 +665,10 @@ class Radar_Processing():
             " Side lobes removed."
         # Add side lobe information to radar mask
         if Performance.str2bool(self.cfg_dict["add_radar_mask_values"]):
-            ds["radar_flag"]=ds["radar_flag"].where(~side_lobe_mask,5)
+            ds["radar_flag"]=ds["radar_flag"].where(~side_lobe_mask,4)
             # Add mask value to attributes
             mask_value_list=ds["radar_flag"].mask_values
-            mask_value_list.append('5.0 : side lobes removed')
+            mask_value_list.append('4.0 : side lobes removed')
             ds["radar_flag"].attrs["mask_values"]=mask_value_list
         return ds
     

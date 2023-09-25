@@ -6,13 +6,21 @@ Created on Fri Jan 29 08:09:31 2021
 
 @author: u300737
 """
-def main(campaign_name,rf):
+def main(campaign_name,rf,
+         instruments_to_unify=[#"bahamas",
+                               #"radar",
+                               "radiometer",
+                               #"dropsondes", 
+                               ] # default bahamas, dropsondes, radar, radiometer.
+         ):
     import os
     import glob
     import sys
     import init_paths
     # Define paths
-    working_path=init_paths.main()
+    working_path=init_paths.main(
+        base_path="C:\\Users\\u300737\\Desktop\\Desktop_alter_Rechner\\"+\
+                    "PhD_UHH_WIMI\\")
     actual_working_path=os.getcwd()
     airborne_data_importer_path=working_path+"/Work/GIT_Repository/"+\
                                 "hamp_processing_py/"+\
@@ -72,15 +80,10 @@ def main(campaign_name,rf):
                               "RF15":"20220408",
                               "RF16":"20220410",
                               "RF17":"20220411",
-                              "RF18":"20220412"}
+                              "RF18":"20220412"
+                              }
     
     
-    #%%
-    instruments_to_unify=[#"bahamas",
-                          #"dropsondes",
-                          "radar",
-                          "radiometer",#"radar"] 
-                          ] # default bahamas, dropsondes, radar, radiometer.
     #%%
     # load config files
     cfg=config_handler.Configuration(major_path=airborne_data_importer_path)
@@ -149,7 +152,7 @@ def main(campaign_name,rf):
                                                                        # is not added to the data
                                       
                              "version":2,
-                             "subversion":7,
+                             "subversion":6,
                              "quicklooks":False,               # default True
                              "missing_value":-888,
                              "fill_value": np.nan,
@@ -275,7 +278,7 @@ if __name__=="__main__":
                                 #"RF05",
                                 #"RF06",
                                 #"RF07",
-                                #"RF08",#,
+                                "RF08",#,
                                 #"RF09",
                                 #"RF10",#
                                 #"RF11",

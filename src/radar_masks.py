@@ -12,7 +12,7 @@ import glob
 import numpy as np
 import numpy.matlib
 
-import Performance
+import performance as Performance
 import pandas as pd
 import scipy as sc
 import scipy.interpolate as scint
@@ -658,8 +658,8 @@ def make_radar_info_mask(flightdates,outfile,cfg_dict):
     key = {'0':'good',
            '0-1':'sea_ice_cover',
            '-.1':'surface',
-           '3':'noise',
-           '4':'radar calibration'}
+           '2':'noise',
+           '3':'radar calibration'}
     
     #radarInfoMask = 
     
@@ -748,11 +748,11 @@ def make_radar_info_mask(flightdates,outfile,cfg_dict):
                                              index=calibration_mask_df.index)
             
                 radarInfoMask.loc[\
-                    calibration_mask_df[calibration_mask_df==1.0].index] = 4
+                    calibration_mask_df[calibration_mask_df==1.0].index] = 3
             
             # make noise at last to overwrite all other masks
             if noise_mask_df is not None:
-                radarInfoMask.loc[noise_mask_df[noise_mask_df==1].index,:] = 3
+                radarInfoMask.loc[noise_mask_df[noise_mask_df==1].index,:] = 2
         radarInfoMask["key"]=np.nan
         radarInfoMask["key"].iloc[0:5]=[*key.keys()]
         radarInfoMask["mask_value"]=np.nan

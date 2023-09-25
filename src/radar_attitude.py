@@ -11,7 +11,7 @@ import glob
 import numpy as np
 import numpy.matlib
 
-import Performance
+import performance as Performance
 import pandas as pd
 import scipy.interpolate as scint
 
@@ -643,7 +643,7 @@ def correct_att_bahamas(radar_fname,version_number,radarOut_dir,
     var_copy = ['nfft','prf','NyquistVelocity','nave','zrg','rg0','drg','lambda',
                 'tpow','npw1','npw2','cpw1','cpw2','grst']
 
-    var_edit = ['SNRg','VELg','RMSg','LDRg','HSDco','HSDcx','Zg','Ze']
+    var_edit = ['SNRg','VELg','RMSg','LDRg','HSDco','HSDcx','Zg']#,'Ze']
 
     # OLD NAMES---> To be ignored 
     # % varBahamas = {'P','RH','abshum','mixratio','speed_air','T','Td','theta',...
@@ -785,13 +785,15 @@ def correct_att_bahamas(radar_fname,version_number,radarOut_dir,
     #Set format to bahamas_file format, but "NETCDF4_CLASSIC" would be better
     nc_attributes["Format"]=nc4.Dataset(bahamas_file).data_model
     #
-    outfile_ds=xr.Dataset()
+    outfile_ds=xr.Dataset()#dims={"time":outfile_time.values,
+    #                            "height":outfile_height.values})
     outfile_time=xr.DataArray(t_both[0:time_max])#.astype(np.int64)
     
     vertical_coordinate= z_Grid
     outfile_height = xr.DataArray(vertical_coordinate)
+    outfile_ds=outfile_ds.assign_coords(coords={"time":outfile_time.values,"height":outfile_height.values})
     # Adjust name
-    outfile_ds=outfile_ds.expand_dims({"time":outfile_time,"height":outfile_height})
+    #outfile_ds=outfile_ds.expand_dims(dim={"time":outfile_time,"height":outfile_height})
     outfile_ds.time.attrs["long_name"]     = "Seconds since 01.01.1970 00:00 UTC"
     #outfile_ds.time.attrs["units"]         = "Seconds"
     outfile_ds.time.attrs["axis"]          = "T"
@@ -892,7 +894,9 @@ def correct_att_bahamas(radar_fname,version_number,radarOut_dir,
 
         #% Add fill value information, need to be transposed
         temporary_dataarray.attrs["fill_value"]="NaN"
-        
+        if var=="VELg":
+            temporary_dataarray.attrs["warning"]="Aircraft motion affected!"+\
+                                " Needs further processing!"
         outfile_ds[var]=temporary_dataarray
     
     #%% Calibrate Radar Zg

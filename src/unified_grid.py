@@ -15,8 +15,8 @@ import pandas as pd
 import xarray as xr
 
 import campaign_netcdf as cpgn_nc
-import Performance
-performance=Performance.performance()
+import performance
+performance=performance.performance()
 
 ###############################################################################
 #%% Standard functions
@@ -124,6 +124,7 @@ def filter_spikes(data,spike_threshold=None):
 
 ###############################################################################
 #%% Major functions in order to unify grid
+#%% BAHAMAS
 def unifyGrid_bahamas(flight,cfg_dict,bahamas_vars_use):
     import measurement_instruments_ql as Measurement_Instruments_QL
     import campaign_time as Campaign_Time
@@ -335,6 +336,7 @@ def unifyGrid_bahamas(flight,cfg_dict,bahamas_vars_use):
     del bahamas_var_dict
     return uni_time,uni_height
 
+#%% Dropsondes
 def get_height_time_index_sonde(uni_time,uni_height,
                                 sonde_time,sonde_height):
     
@@ -363,7 +365,6 @@ def get_height_time_index_sonde(uni_time,uni_height,
         j+=1
             
     return ind_height
-
 def unifyGrid_dropsondes(flight,uni_df,
                          uni_time,uni_height,
                          cfg_dict,sonde_vars):
@@ -712,7 +713,7 @@ def unifyGrid_dropsondes(flight,uni_df,
     print('Dropsonde unifygrid pickle file saved as \n:',outpath+fname_pickle)
     
     return None        
-                    
+#%% Radar                    
 def unifyGrid_radar(flight,uni_df,
                     uni_time,uni_height,
                     cfg_dict,radar_vars):
@@ -795,7 +796,12 @@ def unifyGrid_radar(flight,uni_df,
                                   "unify_varname":"uni_height"},
                                  ignore_index=True)
     
-    #%% Dropsonde data
+    #extra_info=extra_info.append({"varname":"curveFlag",
+    #                             "units":"/",
+    #                             "variable":"Flag for flight curves",
+    #                             "unify_varname":"uni_curveFlag"},
+    #                             ignore_index=True)
+    # Dropsonde data
     
     # Preallocate 
     ind_height   = {}
@@ -819,6 +825,7 @@ def unifyGrid_radar(flight,uni_df,
         radar_height    = pd.Series(np.array(radar_ds.height[:]))
         radar_state     = pd.Series(data=np.array(radar_ds.grst[:]),
                                     index=radar_time)
+        radar_curve     = pd.Series(np.array(radar_ds.curveFlag[:]))
         for var in radar_vars:
 
             print(var)
@@ -827,11 +834,16 @@ def unifyGrid_radar(flight,uni_df,
                                       columns=radar_height,
                                       index=radar_time)
             except:
-                radar_df=pd.DataFrame(data=np.array(radar_ds[var][:].T),
+                try:
+                    radar_df=pd.DataFrame(data=np.array(radar_ds[var][:].T),
                                       columns=radar_height,
                                       index=radar_time)
-                radar_df=radar_df.interpolate(method="time",limit=1)
-                
+                    radar_df=radar_df.interpolate(method="time",limit=1)
+                except:
+                    radar_df=pd.DataFrame(data=
+                            np.tile(np.array(radar_ds[var][:]),
+                                    (radar_height.shape[0],1)).T,
+                            columns=radar_height,index=radar_time)
             # Discard data where radar state was not 13; i.e. local oscillator
             # not locked and/or radiation off
             radar_df.loc[radar_state[radar_state!=13].index]=np.nan
@@ -853,7 +865,7 @@ def unifyGrid_radar(flight,uni_df,
     globals()["flightdate"]=flight
     globals()["uni_time"]=uni_time
     globals()["uni_height"]=uni_height        
-    
+    #globals()["uni_curveFlag"]=radar_curve
     #Save variables to pickle
     print("Save Radar as pickle")
     pickle_variables={}
@@ -1107,7 +1119,7 @@ def unifyGrid_radiometer(flight,uni_df,
     
     
     
-    
+#%% Handler unify grid    
 def run_unify_grid(flightdates_use,cfg_dict):
     """
     
@@ -1125,7 +1137,7 @@ def run_unify_grid(flightdates_use,cfg_dict):
 
     """
     
-    print("Function under progress")
+    #print("Function under progress")
      
     #%% Switches 
     # usually all set to True, but can be useful for debugging
@@ -1140,7 +1152,8 @@ def run_unify_grid(flightdates_use,cfg_dict):
     all_flight_dates = cfg_dict["Flight_Dates"];
 
     t1 = flightdates_use[0];
-
+    rf_name=flightdates_use.index[0]
+    cfg_dict["RF"]=rf_name
     # Set path to base folder
     pathtofolder = cfg_dict["campaign_path"]#getPathPrefix getCampaignFolder(t1)];
 
@@ -1155,7 +1168,10 @@ def run_unify_grid(flightdates_use,cfg_dict):
     radiometer_vars = ['183','11990','KV']
 
     # Radar
-    radar_vars = ['dBZg','Zg','Ze','dBZe','LDRg','RMSg','VELg','SNRg']
+    radar_vars = ['dBZg','Zg',#'Ze','dBZe',
+                  'LDRg','RMSg','VELg','SNRg',
+                  'curveFlag'
+                  ]
 
     # Dropsondes
     sonde_vars = ['pres','tdry','dp','rh','u_wind','v_wind','wspd','wdir',
@@ -1262,7 +1278,8 @@ def run_unify_grid(flightdates_use,cfg_dict):
                     temporary_version=cpgn_nc.CPGN_netCDF.\
                         check_outfile_name_version_for_calibration(
                                                             cfg_dict,instr)
-                    fname=instr+"_"+str(flight)+"_v"+temporary_version+\
+                    fname="HALO_HALO_AC3_"+instr+"_unified_"+str(rf_name)+"_"+\
+                        str(flight)+"_v"+temporary_version+\
                         "."+cfg_dict["subversion"]+file_format
                     outfile=out_path+fname
                     print(instr," ds will be stored as:",outfile)

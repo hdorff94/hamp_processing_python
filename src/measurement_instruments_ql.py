@@ -151,7 +151,7 @@ class HALO_Devices():
 
         return 2 * R * np.arcsin(np.sqrt(d))    
 #-----------------------------------------------------------------------------#
-#%%
+#%% BACARDI
 class BACARDI(HALO_Devices):
     def __init__(self,HALO_Devices_cls):
         self.cfg_dict=HALO_Devices_cls.cfg_dict
@@ -220,7 +220,7 @@ class BACARDI(HALO_Devices):
             except:
                 self.open_unprocessed_quicklook_data()
 #-----------------------------------------------------------------------------#
-#%%
+#%% BAHAMAS
 class BAHAMAS(HALO_Devices):
     def __init__(self,HALO_Devices_cls):
         # changed after NARVAL-I! use only for NARVAL-II and onward. For
@@ -594,17 +594,35 @@ class BAHAMAS(HALO_Devices):
         sea_ice_mask=sea_ice_mask.fillna(0)
         print("check for land surface")
         # Now add land mask
-        from ac3airborne.tools import is_land as il
+        try:
+            from ac3airborne.tools import is_land as il
+        except:
+            print("issues in importing ac3airborne")
+            # Manually import shapereader
+            import cartopy.io.shapereader as shaper
+            import shapely.geometry as shapegeom
+            from shapely.ops import unary_union
+            from shapely.prepared import prep
+
+            land_shp_fname = shaper.natural_earth(
+                            resolution='10m', category='physical', name='land')
+            land_geom = unary_union(
+                            list(shaper.Reader(land_shp_fname).geometries()))
+            land = prep(land_geom)
+            def is_land_surface(x, y):
+                return land.contains(shapegeom.Point(x, y))
+
+
         t=0
         for x, y in zip(bah_df["LON"], bah_df["LAT"]):
-            if il.is_land(x,y):
-                sea_ice_mask.iloc[t]=-0.1*int(il.is_land(x,y))                
+            if is_land_surface(x,y):
+                sea_ice_mask.iloc[t]=-0.1*int(is_land_surface(x,y))                
             t+=1
             performance.updt(bah_df.shape[0],t)
         bah_df["sea_ice"]=sea_ice_mask.values    
         return bah_df
 #-----------------------------------------------------------------------------#
-#%%
+#%% Dropsondes
 class Dropsondes(HALO_Devices):
     def __init__(self,HALO_Devices_cls):
         #import metpy 
@@ -759,7 +777,7 @@ class Dropsondes(HALO_Devices):
             
         
 #-----------------------------------------------------------------------------#
-#%%
+#%% HAMP
 class HAMP(HALO_Devices):
     def __init__(self, HALO_Devices_cls,
                  version='raw', **kwargs):
@@ -942,12 +960,11 @@ class HAMP(HALO_Devices):
     def open_processed_hamp_data(self,open_calibrated=False,
                                  newest_version=True):
        import campaign_netcdf
-       nc_path=self.cfg_dict["device_data_path"]+"all_nc/radiometer_"+\
-       str([*self.cfg_dict["Flight_Dates_used"]][0])
+       nc_path=self.cfg_dict["device_data_path"]+"all_nc/"
        #sys.exit()
        if newest_version:       
           data_file=campaign_netcdf.CPGN_netCDF.identify_newest_version(
-              nc_path,for_calibrated_file=open_calibrated)
+              nc_path,device="radiometer",for_calibrated_file=open_calibrated)
        if not open_calibrated:
            self.processed_hamp_ds=xr.open_dataset(data_file)
        else:
@@ -972,7 +989,7 @@ class HAMP(HALO_Devices):
          
     
 #-----------------------------------------------------------------------------#
-#%%            
+#%% Radar         
 class RADAR(HALO_Devices):
     def __init__(self,HALO_Devices_cls):
         #super(HALO_Radar,self).__init__()
@@ -1072,11 +1089,16 @@ class RADAR(HALO_Devices):
     def open_version_specific_processed_radar_data(self,version="undefined",
                                                    for_calibrated_file=False):
         import campaign_netcdf as Campaign_netCDF
-        nc_path=self.cfg_dict["device_data_path"]+"all_nc/radar_"+\
-        str([*self.cfg_dict["Flight_Dates_used"]][0])
+        try:
+            used_flight_date=str([*self.cfg_dict["Flight_Dates_used"]][0])
+        except:
+            used_flight_date=str(self.cfg_dict["flight_date_used"])
+        nc_path=self.cfg_dict["device_data_path"]+"all_nc/"#"#radar_"+\
+        #used_flight_date
         print("Look for Radar data in ",nc_path)
         default_data_file=Campaign_netCDF.CPGN_netCDF.identify_newest_version(
-            nc_path,for_calibrated_file=for_calibrated_file)
+            nc_path,date=used_flight_date,
+            for_calibrated_file=for_calibrated_file)
         if version=="undefined":
             # the newest version will be used
             data_file=default_data_file
@@ -1273,7 +1295,7 @@ class RADAR(HALO_Devices):
         # Finished, return histogram    
         return cfad_hist_dict
 #-----------------------------------------------------------------------------#
-#%% 
+#%% SMART
 class SMART(HALO_Devices):
     def __init__(self,HALO_Devices_cls):
         self.cfg_dict=HALO_Devices_cls.cfg_dict
@@ -1300,7 +1322,7 @@ class SMART(HALO_Devices):
         self.ds=xr.open_dataset(self.irs_file)
         
 #-----------------------------------------------------------------------------#
-#%%
+#%% Sea ice data
 class SEA_ICE():
     def __init__(self,cfg_dict):
         self.cfg_dict=cfg_dict
@@ -1329,7 +1351,7 @@ class SEA_ICE():
                 
                 
 
-#%% 
+#%% POLAR Aircraft
 class POLAR_Devices():
     def __init__(self,cfg_dict):
         self.cfg_dict=cfg_dict

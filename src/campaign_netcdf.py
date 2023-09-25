@@ -9,9 +9,9 @@ import numpy as np
 import os
 import pandas as pd
 
-import Performance
+import performance as Performance
 import sys
-
+from datetime import datetime
 
 import xarray as xr
 
@@ -159,6 +159,8 @@ class CPGN_netCDF():
         extra_data={}
         for var in var_names:
             print(var)
+            if var=="uniRadar_curveFlag":
+                device_dict[var]=device_dict[var].iloc[:,1]
             if var=="uniSondes_launchtime":
                 print("debugging")
             if not isinstance(device_dict[var],str):
@@ -249,7 +251,11 @@ class CPGN_netCDF():
                                         extra_info_tmp["variable"].loc[var]
                                     ds[da_var_name].attrs["units"]      = \
                                         extra_info_tmp["units"].loc[var]
-                    
+                    if da_var_name=="VELg":
+                        ds[da_var_name].attrs["warning"]=\
+                            "Aircraft motion affected!"+\
+                                " Needs further processing!"
+                                    
             else:
                 extra_data[var]=device_dict[var]
         print("Dataset assigned")
@@ -310,7 +316,14 @@ class CPGN_netCDF():
                 #device_dict["corr_comments"]
                 
         global_attrs={}
+        global_attrs["title"]="HAMP measurements on HALO Aircraft during"+\
+            cfg_dict["campaign"]
+        global_attrs["institute"]="Meteorological Institute, "+\
+            "Universitaet Hamburg; Max Planck Institute for Meteorology;"+\
+            "Institute for Geophysics and Meteorology, University of Cologne;"+\
+            "DLR Institute for Physics of the Atmosphere, German Aerospace Center"
         global_attrs["contact"]=cfg_dict["contact"]
+        global_attrs["source"]="HAMP "+cfg_dict["instruments_to_unify"]
         global_attrs["flight_date"]=cfg_dict["Flight_Dates_used"].values[0]
         global_attrs["flight_number"]=cfg_dict["Flight_Dates_used"].keys()[0]
         global_attrs["mission"]=cfg_dict["campaign"]
@@ -319,7 +332,16 @@ class CPGN_netCDF():
             corrections=[corr[0] for corr in device_dict["corr_comments"].values if len(corr)> 0]
             if len(corrections)>0:
                 global_attrs["Corrections"]='-'.join(corrections)
-        
+        global_attrs["conventions"]="CF-1.6 where applicable"
+        global_attrs["processing_date"]= datetime.now().strftime(
+                                            "%d/%m/%Y %H:%M:%S")
+        global_attrs["authors"]="Dorff, Henning; Ewald, Florian; Hirsch, Lutz;"+\
+            "Jansen, Friedhelm; Konow, Heike; Mech, Mario; Ori, Davide;"+\
+                "Ringel, Maximilian; Walbröl, Andreas; Crewell, Susanne;"+\
+                    "Ehrlich, André; Wendisch, Manfred; Ament, Felix"
+        global_attrs["licence"]="Creative Commons Attribution NonCommercial"+\
+            "ShareAlike 4.0 International (CC BY-NC-SA 4.0)"
+
         ds.attrs=global_attrs   
         
         # Add missing value information
@@ -339,7 +361,8 @@ class CPGN_netCDF():
             #print("Radiometer ds,",ds)
             if Performance.str2bool(cfg_dict["calibrate_radiometer"]):
                 print("Calibrate Radiometer")
-                ds=Radiometer_uni_prcs.calibrate_radiometer_TBs(ds)    
+                try:    ds=Radiometer_uni_prcs.calibrate_radiometer_TBs(ds)
+                except: pass
             if Performance.str2bool(cfg_dict["remove_radiometer_errors"]):
                 ds=Radiometer_uni_prcs.remove_radiometer_errors(ds)
             if Performance.str2bool(cfg_dict["add_radar_mask_values"]):
@@ -353,7 +376,9 @@ class CPGN_netCDF():
         # Save files as netcdf        
         # Save data
         print("Save ",instrument," data as netCDF4")
-        nc_compression=dict(zlib=True,complevel=1,dtype=np.float64)
+        nc_compression=dict(zlib=True,
+                            _FillValue=float(cfg_dict["missing_value"]),
+                            complevel=1,dtype=np.float64)
         nc_encoding= {ds_var:nc_compression for ds_var in ds.variables}
         #outfile_ds["time"]=outfile_ds["time"].astype(np.int64)
         ds.to_netcdf(path=outfile,mode="w",format="NETCDF4",
@@ -363,6 +388,7 @@ class CPGN_netCDF():
     
     @staticmethod
     def check_outfile_name_version_for_calibration(cfg_dict,instr):    
+        import performance as Performance
         temporary_version=cfg_dict["version"]
         if instr in ["radar","radiometer"]:
             device_calibration="calibrate_"+instr
@@ -371,21 +397,21 @@ class CPGN_netCDF():
                     temporary_version=str(int(int(temporary_version)+1)) 
         return temporary_version
     @staticmethod
-    def identify_newest_version(nc_path,device="",
+    def identify_newest_version(nc_path,campaign="HALO_AC3",device="radar",
                                 date="",for_calibrated_file=False):
         # the general file type of interest depends on calibrated or 
         # uncalibrated files in version number. After that highest
         # subversion_number has to be found.
         if for_calibrated_file:
-            if not date=="" and not date =="": 
-                nc_path=nc_path+device+"_"+date+"_v2*.nc"
+            if not date=="" and not date ==" ": 
+                nc_path=nc_path+"HALO_"+campaign+"_"+device+"_unified_*"+date+"_v2*.nc"
             else:
-                nc_path=nc_path+"_v2*.nc"
+                nc_path=nc_path+"HALO_"+campaign+"_"+device+"_unified_*"+"_v2*.nc"
         else:
             if not date=="" and not date =="": 
-                nc_path=nc_path+device+"_"+date+"_v0*.nc"
+                nc_path=nc_path+"HALO_"+device+"_unified_*"+date+"_v0*.nc"
             else:
-                nc_path=nc_path+"_v0*.nc"
+                nc_path=nc_path+"HALO_"+device+"_unified_*"+date+"_v2*.nc"
         # List relevant files of processing type (calibrated or uncalibrated)    
         print(nc_path)
         nc_files=glob.glob(nc_path)

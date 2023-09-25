@@ -21,7 +21,7 @@ class Configuration():
             system_is_windows=True
         else:
             system_is_windows=False
-
+        #
         config_object["Input"]={
                 "system":"linux",
                 "campaign":campaign,
@@ -30,9 +30,12 @@ class Configuration():
                 }
         config_object["Input"]["save_path"]="/home/zmaw/u300737/PhD/Work/"+\
                 config_object["Input"]["campaign"]
-        major_config_file=self.load_config_file(file_name)
+        #major_config_file=self.load_config_file(file_name)
+        major_config_file=config_object
         
         if system_is_windows:
+            #major_config_file["Input"] = major_config_file["DEFAULT"]
+            
             if not major_config_file["Input"]["system"]=="windows":
                 windows_paths={
                     "system":"windows",

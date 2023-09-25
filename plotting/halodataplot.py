@@ -17,8 +17,10 @@ from matplotlib import colors
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
 import seaborn as sns
-from cmcrameri import cm as cmaeri
-
+try:
+    from cmcrameri import cm as cmaeri
+except:
+    print("Cmcrameri module cannot be loaded")
 try: 
     import typhon
 except:
@@ -951,8 +953,8 @@ class Radar_Quicklook(Quicklook_Plotter):
         print("dBZ plotted")
         #Plotting
         C1=axs[0].pcolor(time,y,
-                             np.array(processed_radar["dBZg"][:]),
-                             vmin=-30,vmax=30)
+                             np.array(processed_radar["dBZg"][:]).T,
+                             vmin=-30,vmax=30,shading='nearest')
         cax1=fig.add_axes([0.9, 0.725, 0.01, 0.15])
 
         cb = plt.colorbar(C1,cax=cax1,
@@ -972,7 +974,7 @@ class Radar_Quicklook(Quicklook_Plotter):
         # Radar LDR
         print("LDR plotted")
         C2=axs[1].pcolor(time,y,np.array(processed_radar["LDRg"][:].T),
-                         cmap="cubehelix_r",vmin=-50, vmax=5)        
+                         cmap="cubehelix_r",vmin=-50, vmax=5,shading='nearest')        
         axs[1].set_yticks([0,2000,4000,6000,8000,10000,12000])
         axs[1].set_ylim([0,12000])
         axs[1].set_yticklabels(["0","2","4","6","8","10","12"])
@@ -993,26 +995,27 @@ class Radar_Quicklook(Quicklook_Plotter):
         cb.set_label('LDR (dB)')
         # Radar Doppler Velocity
         print("Doppler vel")
-        C3=axs[2].pcolor(pd.DatetimeIndex(np.array(processed_radar.time[:])),
-                         y,processed_radar["VELg"].T,
-                         cmap="PuOr",vmin=-15, vmax=15)
-        cax3=fig.add_axes([0.9, 0.325, 0.01, 0.15])
-
-        cb3 = plt.colorbar(C3,cax=cax3,
-                    orientation='vertical',
-                    extend="both")
-        cb3.set_label('Doppler Velocity (m/s)')
-        axs[2].set_yticks([0,2000,4000,6000,8000,10000,12000])
-        axs[2].set_ylim([0,12000])
-        axs[2].set_yticklabels(["0","2","4","6","8","10","12"])
         
-        for label in axs[2].get_xticklabels():
-            label.set_rotation(30)
-        if np.isnan(hourly):
-            axs[2].xaxis.set_major_locator(mdates.MinuteLocator(byminute=[0]))        
-        else:
-            axs[2].xaxis.set_major_locator(mdates.MinuteLocator(byminute=[0,15,30,45]))
-        axs[2].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))        
+        #C3=axs[2].pcolor(pd.DatetimeIndex(np.array(processed_radar.time[:])),
+        #                 y,processed_radar["VELg"].T,
+        #                 cmap="PuOr",vmin=-15, vmax=15)
+        #cax3=fig.add_axes([0.9, 0.325, 0.01, 0.15])#
+
+        #cb3 = plt.colorbar(C3,cax=cax3,
+        #            orientation='vertical',
+        #            extend="both")
+        #cb3.set_label('Doppler Velocity (m/s)')
+        #axs[2].set_yticks([0,2000,4000,6000,8000,10000,12000])
+        #axs[2].set_ylim([0,12000])
+        #axs[2].set_yticklabels(["0","2","4","6","8","10","12"])
+        
+        #for label in axs[2].get_xticklabels():
+        #    label.set_rotation(30)
+        #if np.isnan(hourly):
+        #    axs[2].xaxis.set_major_locator(mdates.MinuteLocator(byminute=[0]))        
+        #else:
+        #    axs[2].xaxis.set_major_locator(mdates.MinuteLocator(byminute=[0,15,30,45]))
+        #axs[2].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))        
         
         #axs[2].set_xlabel('Time (UTC)')
         if show_masks:
@@ -1020,16 +1023,16 @@ class Radar_Quicklook(Quicklook_Plotter):
             # define colormap
             cmap_mask = colors.ListedColormap(['green','orange','black','blue',
                                            'magenta'])
-            bounds=[.5,1.5,2.5,3.5,4.5,5.5]
+            bounds=[.5,1.5,2.5,3.5,4.5]
             norm = colors.BoundaryNorm(bounds, cmap_mask.N)
         
             C4=axs[3].contourf(time,y,np.array(
                             processed_radar["radar_flag"][:].T).astype(float),
-                            levels=np.arange(0.5,6.5),cmap=cmap_mask,norm=norm)
+                            levels=np.arange(0.5,4.5),cmap=cmap_mask,norm=norm)
             cax4=fig.add_axes([0.9, 0.125, 0.01, 0.15])
             cb4=plt.colorbar(C4,cax=cax4,orientation="vertical")
             cb4.set_label("Radar mask")
-            cb4.set_ticks([0,1,2,3,4,5])
+            cb4.set_ticks([0,1,2,3,4])
             cb4.ax.set_yticklabels(["good",
                                 "noise",
                                 "sfc",
@@ -1071,15 +1074,18 @@ class Radar_Quicklook(Quicklook_Plotter):
             self.specify_plot_path()
         if np.isnan(hourly):
             fig_name="processed_radar_quicklook_"+\
-                    str([*self.cfg_dict["Flight_Dates_used"]][0])+".png"
+                    str([*self.cfg_dict["flight_date_used"]][0])+".png"
         else:
             fig_name="processed_radar_quicklook_"+\
-                    str([*self.cfg_dict["Flight_Dates_used"]][0])+"_"+\
+                    str([*self.cfg_dict["flight_date_used"]][0])+"_"+\
                         str(hourly)+"00.png"
         if is_calibrated:
             fig_name="calibrated_"+fig_name
         fig.savefig(self.radar_fig_path+fig_name,bbox_inches="tight",dpi=300)
         print("Figure saved as:",self.radar_fig_path+fig_name)
+    
+    def unified_radar_quicklook(self,):
+        pass
     
     def plot_only_precip_rates(self,halo_era5,halo_icon_hmp,
                                precipitation_rate,ar_of_day,
