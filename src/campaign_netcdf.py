@@ -362,7 +362,10 @@ class CPGN_netCDF():
             if Performance.str2bool(cfg_dict["calibrate_radiometer"]):
                 print("Calibrate Radiometer")
                 try:    ds=Radiometer_uni_prcs.calibrate_radiometer_TBs(ds)
-                except: pass
+                except: 
+                    ds=ds.sortby("uniRadiometer_freq")
+                    print("HAMP TB remain uncalibrated but sorted")
+                        
             if Performance.str2bool(cfg_dict["remove_radiometer_errors"]):
                 ds=Radiometer_uni_prcs.remove_radiometer_errors(ds)
             if Performance.str2bool(cfg_dict["add_radar_mask_values"]):
@@ -406,12 +409,12 @@ class CPGN_netCDF():
             if not date=="" and not date ==" ": 
                 nc_path=nc_path+"HALO_"+campaign+"_"+device+"_unified_*"+date+"_v2*.nc"
             else:
-                nc_path=nc_path+"HALO_"+campaign+"_"+device+"_unified_*"+"_v2*.nc"
+                nc_path=nc_path+"HALO_"+campaign+"_"+device+"_unified_*"+date+"_v2*.nc"
         else:
             if not date=="" and not date =="": 
-                nc_path=nc_path+"HALO_"+device+"_unified_*"+date+"_v0*.nc"
+                nc_path=nc_path+"HALO_"+campaign+"_"+device+"_unified_*"+date+"_v0*.nc"
             else:
-                nc_path=nc_path+"HALO_"+device+"_unified_*"+date+"_v2*.nc"
+                nc_path=nc_path+"HALO_"+campaign+"_"+device+"_unified_*"+date+"_v2*.nc"
         # List relevant files of processing type (calibrated or uncalibrated)    
         print(nc_path)
         nc_files=glob.glob(nc_path)

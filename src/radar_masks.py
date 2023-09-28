@@ -448,8 +448,8 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
         
         # Omit the first and last two minutes of each flight in land mask, since
         # the radar has not been operating during these times...
-        landmask_df.iloc[0:120]   = np.nan
-        landmask_df.iloc[-120:-1] = np.nan
+        landmask_df.iloc[0:120]   = cfg_dict["missing_value"]
+        landmask_df.iloc[-120:-1] = cfg_dict["missing_value"]
         landmask_df=landmask_df.reindex(z_df.index)
         # Remove noise and set to nan
         noise_file=outpath+"Noise_Mask_"+str(flight)+".csv"
@@ -528,7 +528,9 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
                               index=pd.DatetimeIndex(np.array(radar_ds["time"][:])))
             
         # Loop time
-        print("Fill surface mask from zero to height of surface +2 extra levels")
+        extra_levels=6
+        print("Fill surface mask from zero to height of surface +",extra_levels,
+              " extra levels")
         for j in range(ind_hSurf.shape[0]):
             # If time step is over land and surface height is not nan
             if (landmask_df[mask_arg].iloc[j]==mask_value) \
@@ -538,7 +540,7 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
                 ind_hSurf[j] = np.argmin(diff_hSurf)
                 # Write one to surface mask from bottom to surface height
                 # plus two range gates (just to be sure)
-                surface_mask.iloc[j,0:int(ind_hSurf[j])+2] = mask_value
+                surface_mask.iloc[j,0:int(ind_hSurf[j])+extra_levels] = mask_value
             performance.updt(ind_hSurf.shape[0],j)        
         
         if show_quicklook:
@@ -729,7 +731,8 @@ def make_radar_info_mask(flightdates,outfile,cfg_dict):
             mask_found=True
         except:
             pass
-        
+        radarInfoMask = np.where(radarInfoMask==0, np.nan, radarInfoMask)
+
         # Handle the maps
         if not mask_found:
             raise Exception("No mask file found")

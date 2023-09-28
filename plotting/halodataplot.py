@@ -9,6 +9,11 @@ import os
 import performance
 import sys
 
+import numpy as np
+import pandas as pd
+import xarray as xr
+
+
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -26,10 +31,7 @@ try:
 except:
     print("Typhon module cannot be loaded")
         
-import xarray as xr
-import pandas as pd
-import numpy as np
-
+import measurement_instruments_ql
 #import Measurement_Instruments
 #def add_sondes_in_plots(date):
 
@@ -160,8 +162,39 @@ def replace_fill_and_missing_values_to_nan(ds,variables):
         ds[var]=xr.where(ds[var]!=-2*888,ds[var],np.nan)
     return ds
 
+def no_pd_dt_set_xticks_and_xlabels(ax, time_extend):
+    import datetime
+    """    
+    From https://github.com/jroettenbacher/phd_base/blob/main/src/pylim/helpers.py :
+    This function sets the ticks and labels of the x-axis 
+    (only when the x-axis is time in UTC).
+    
+    Options:
+	1 days > time_extend > 12 hours:
+            major ticks every 2 hours, minor ticks every 1 hour
+	12 hours > time_extend:	
+            major ticks every 1 hour, minor ticks every 30 minutes
+    Args:
+        ax: axis in which the x-ticks and labels have to be set
+        time_extend: time difference of t_end - t_start 
+        (format datetime.timedelta)
+    Returns:
+        axis with new ticks and labels
+        """
+    if time_extend > datetime.timedelta(days=1):
+        pass    
+    elif datetime.timedelta(days=1) >= time_extend >\
+            datetime.timedelta(hours=12):
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        ax.xaxis.set_major_locator(mdates.HourLocator(interval=2))
+        ax.xaxis.set_minor_locator(mdates.HourLocator(interval=1))
+    elif datetime.timedelta(hours=12) >= time_extend:
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        ax.xaxis.set_major_locator(mdates.HourLocator(interval=1))
+        ax.xaxis.set_minor_locator(mdates.MinuteLocator(byminute=range(0, 60, 30)))
+    return ax
 #######################################################################
-#%%
+#%% Quicklook Plotter
 class Quicklook_Plotter():
     def __init__(self,cfg_dict):
         self.cfg_dict=cfg_dict
@@ -189,7 +222,7 @@ class Quicklook_Plotter():
                     os.makedirs(self.radar_fig_path)
         else:
             raise Exception("Wrong instrument given.")
-#%%
+#%% Radiometer Quicklook
 class Radiometer_Quicklook(Quicklook_Plotter):
     def __init__(self,cfg_dict):
         super(Radiometer_Quicklook,self).__init__(cfg_dict)
@@ -279,7 +312,7 @@ class Radiometer_Quicklook(Quicklook_Plotter):
             ax4.spines[axis].set_linewidth(2)
             ax4.tick_params(width=2)
         ax4.set_axisbelow(True)
-        #%% Offset
+        
         ax5=calib_coeff_fig.add_subplot(245)
         ax5.set_ylabel("Offset (K)")
         ax5.scatter(self.flight_tb_slope_coeff_ds["frequency"][0:7].astype(str),
@@ -357,7 +390,300 @@ class Radiometer_Quicklook(Quicklook_Plotter):
             ax8.spines[axis].set_linewidth(2)
             ax8.tick_params(width=2)
 
-    
+    def unified_radiometer_plot(self,flight,plot_path, hourly=np.nan,calibrated=True):
+        """
+        Create quicklooks from processed HALO HAMP microwave radiometer 
+        measurements. TBs for each available frequency will be plotted.
+        Time axis boundaries will be according to BAHAMAS data.
+        - Load MWR data
+        - Load BAHAMAS data
+        - Plot quicklook overview
+        """
+        # Plot: first option: quite combined (K, V, 11990, 183) <- four plots +1 for surface
+        fig, ax = plt.subplots(5, 1, figsize=(11, 15), sharex=True,
+                    gridspec_kw=dict(hspace=0.5,height_ratios=(1,1,1,1,0.1)))
+        
+        # ax lims:
+        #time_lims = [time_var.values[0], time_var.values[-1]]
+        tb_lims_k = [130, 270]
+        tb_lims_v = [180, 290]
+        tb_lims_wf = [180, 290]
+        tb_lims_g = [220, 290]
+        #try:
+        #    time_var=bah.TIME[:]
+        #except:
+        time_var=np.array(self.radiometer_tb_dict.time[:])
+        # time extent:
+        time_extent = measurement_instruments_ql.\
+                        HALO_Devices.numpydatetime64_to_datetime(time_var[-1]) -\
+                    measurement_instruments_ql.\
+                        HALO_Devices.numpydatetime64_to_datetime(time_var[0])
+
+
+        # Plotting:
+        # For each receiver, one plot pdf (or at least: KV = plot 1, 11990 + 183 = plot 2
+             
+        fs = 14
+        fs_small = fs - 2
+        fs_dwarf = fs - 4
+        marker_size = 15
+             
+        dt_fmt = mdates.DateFormatter("%H:%M") # (e.g. "12:00")
+        datetick_auto = True
+             
+        
+        
+        
+        Tb_df=pd.DataFrame(data=np.array(self.radiometer_tb_dict["TB"]),
+                               index=pd.DatetimeIndex(np.array(
+                                   self.radiometer_tb_dict.time[:])),
+                               columns=np.array(
+                                   self.radiometer_tb_dict.uniRadiometer_freq[:]).\
+                                   round(2).astype(str))
+        Tb_KV_df=Tb_df.loc[:,["22.24","23.04","23.84","25.44","26.24",
+                                  "27.84","31.4","50.3","51.76","52.8",
+                                  "53.75","54.94","56.66","58.0"]]
+        print("TBKVDF:",Tb_KV_df.columns)
+        Tb_183_df=Tb_df.loc[:,["183.91","184.81","185.81",
+                                    "186.81","188.31","190.81"]]
+        Tb_11990_df=Tb_df.loc[:,["90.0","120.15","121.05","122.95","127.25"]]
+        
+        if not np.isnan(hourly):
+            print("Plot for Hour ",hourly)
+            Tb_11990_df=Tb_11990_df[Tb_11990_df.index.hour==hourly]
+            Tb_183_df=Tb_183_df[Tb_183_df.index.hour==hourly]
+            Tb_KV_df=Tb_KV_df[Tb_KV_df.index.hour==hourly]
+            
+        # some aux info read out of the data:
+        #     n_freq_kv = len(HAMP_MWR.freq['KV'])
+        #     n_freq_11990 = len(HAMP_MWR.freq['11990'])
+        #     n_freq_183 = len(HAMP_MWR.freq['183'])
+        #     n_freq_k = 7
+        #     n_freq_v = 7
+            # colors:
+        #     cmap_kv = matplotlib.cm.get_cmap('tab10', n_freq_kv)
+        #     cmap_11990 = matplotlib.cm.get_cmap('tab10', n_freq_11990)
+        #     cmap_183 = matplotlib.cm.get_cmap('tab10', n_freq_183)
+        #     cmap_k = matplotlib.cm.get_cmap('tab10', n_freq_k)
+        #     cmap_v = matplotlib.cm.get_cmap('tab10', n_freq_v)
+        #     
+        #     #import locale
+        
+        #ax[0].scatter(HAMP_MWR.time_npdt['KV'],
+        #                        HAMP_MWR.TB['KV'][:,freq_idx[k]], 
+        #                        s=1, color=cmap_k(k), linewidth=0,
+        #    					label=f"{HAMP_MWR.freq['KV'][freq_idx[k]]:.2f} GHz")
+        
+        # K-Band    
+        k_colors=["k","darkslateblue","darkmagenta","violet","thistle","gray","silver"]
+        ax[0].scatter(Tb_KV_df.index,Tb_KV_df["22.24"],
+                      s=1,linewidth=0,label="22.24 GHz",color="k")
+        ax[0].scatter(Tb_KV_df.index,Tb_KV_df["23.04"],
+                      s=1,linewidth=0,label="23.04 GHz",color="darkslateblue")
+        ax[0].scatter(Tb_KV_df.index,Tb_KV_df["23.84"],
+                      s=1,linewidth=0,label="23.84 GHz",color="darkmagenta")
+        ax[0].scatter(Tb_KV_df.index,Tb_KV_df["25.44"],
+                      s=1,linewidth=0,label="25.44 GHz",color="violet")
+        ax[0].scatter(Tb_KV_df.index,Tb_KV_df["26.24"],
+                      s=1,linewidth=0,label="26.24 GHz",color="thistle")
+        ax[0].scatter(Tb_KV_df.index,Tb_KV_df["27.84"],
+                      s=1,linewidth=0,label="27.84 GHz",color="gray")
+        ax[0].scatter(Tb_KV_df.index,Tb_KV_df["31.4"],
+                      s=1,linewidth=0,label="31.40 GHz",color="silver")
+        ax[0].set_ylabel("T$_{b}$ in K")
+        ax[0].set_ylim([150,350])
+        ax[0].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+        for axis in ['bottom','left']:
+            ax[0].spines[axis].set_linewidth(2)
+            ax[0].tick_params(width=2)
+        #ax[0].legend(loc="center left",bbox_to_anchor=(1.0,0.5),fontsize=12)
+        ax[0].set_xticklabels("")
+        
+        # add figure identifier of subplots: a), b), ...
+        ax[0].text(0.02, 1.01, "a) K-Band", fontsize=fs_small, fontweight='bold',
+                   ha='left', va='top', transform=ax[0].transAxes)
+        ax[1].text(0.02, 1.01, "b) V-Band", fontsize=fs_small, fontweight='bold',
+                   ha='left', va='top', transform=ax[1].transAxes)
+        ax[2].text(0.02, 1.01, "c) W- and F-Band", fontsize=fs_small, fontweight='bold',
+                   ha='left', va='top', transform=ax[2].transAxes)
+        ax[3].text(0.02, 1.01, "d) G-Band", fontsize=fs_small, fontweight='bold', 
+                   ha='left', va='top', transform=ax[3].transAxes)
+        # V-Band
+        v_colors=["maroon","red","tomato","indianred","salmon","rosybrown","grey"]
+        ax[1].scatter(Tb_KV_df.index,Tb_KV_df["50.3"],
+                      s=1,linewidth=0,
+                      label="50.3 GHz",color="maroon")
+        ax[1].scatter(Tb_KV_df.index,Tb_KV_df["51.76"],s=1,linewidth=0,label="51.76 GHz",color="red")
+        ax[1].scatter(Tb_KV_df.index,Tb_KV_df["52.8"],s=1,linewidth=0,label="52.8 GHz",color="tomato")
+        ax[1].scatter(Tb_KV_df.index,Tb_KV_df["53.75"],s=1,linewidth=0,label="53.75 GHz",color="indianred")
+        ax[1].scatter(Tb_KV_df.index,Tb_KV_df["54.94"],s=1,linewidth=0,label="54.94 GHz",color="salmon")
+        ax[1].scatter(Tb_KV_df.index,Tb_KV_df["56.66"],s=1,linewidth=0,label="56.66 GHz",color="rosybrown")
+        ax[1].scatter(Tb_KV_df.index,Tb_KV_df["58.0"],s=1,linewidth=0,label="58.00 GHz",color="grey")
+        ax[1].set_ylabel("T$_{b}$ in K")
+        ax[1].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+        for axis in ['bottom','left']:
+            ax[1].spines[axis].set_linewidth(2)
+            ax[1].tick_params(width=2)
+        
+        ax[1].set_ylim([150,350])
+        ax[1].set_xticklabels("")
+        #ax[1].legend(loc="center left",bbox_to_anchor=(1.0,0.5),fontsize=12)
+        
+        # W-Band
+        w_colors=["darkgreen","green","forestgreen","mediumseagreen","darkseagreen"]
+        ax[2].scatter(Tb_11990_df.index,Tb_11990_df["90.0"],s=1,linewidth=0,label="90.0 GHz",color="darkgreen")
+        ax[2].scatter(Tb_11990_df.index,Tb_11990_df["120.15"],s=1,linewidth=0,label="(118.75 +/- 1.4) GHz",
+                 color="green")
+        ax[2].scatter(Tb_11990_df.index,Tb_11990_df["121.05"],s=1,linewidth=0,label="(118.75 +/- 2.3) GHz",
+                 color="forestgreen")
+        ax[2].scatter(Tb_11990_df.index,Tb_11990_df["122.95"],s=1,linewidth=0,label="(118.75 +/- 4.2) GHz",
+                 color="mediumseagreen")
+        ax[2].scatter(Tb_11990_df.index,Tb_11990_df["127.25"],s=1,linewidth=0,label="(118.75 +/- 8.5) GHz",
+                 color="darkseagreen")
+        ax[2].set_ylabel("T$_{b}$ in K")
+        ax[2].set_ylim([150,350])
+        ax[2].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+        for axis in ['bottom','left']:
+            ax[2].spines[axis].set_linewidth(2)
+            ax[2].tick_params(width=2)
+        ax[2].set_xticklabels("")
+        #ax[2].legend(loc="center left",bbox_to_anchor=(1.0,0.5),fontsize=12)
+        
+        # G-Band
+        g_colors=["k","midnightblue","blue","royalblue","steelblue","skyblue","grey"]
+        ax[3].scatter(Tb_183_df.index,Tb_183_df["183.91"],s=1,linewidth=0,label="(183.31 +/- 0.6) GHz",
+                 color="k")
+        ax[3].scatter(Tb_183_df.index,Tb_183_df["184.81"],s=1,linewidth=0,label="(183.31 +/- 1.5) GHz",
+                 color="midnightblue")
+        ax[3].scatter(Tb_183_df.index,Tb_183_df["185.81"],s=1,linewidth=0,label="(183.31 +/- 2.5) GHz",
+                 color="blue")
+        ax[3].scatter(Tb_183_df.index,Tb_183_df["186.81"],s=1,linewidth=0,label="(183.31 +/- 3.5) GHz",
+                 color="royalblue")
+        ax[3].scatter(Tb_183_df.index,Tb_183_df["188.31"],s=1,linewidth=0,label="(183.31 +/- 5.0) GHz",
+                 color="steelblue")
+        ax[3].scatter(Tb_183_df.index,Tb_183_df["190.81"],s=1,linewidth=0,label="(183.31 +/- 7.5) GHz",
+                 color="skyblue")
+        try:
+            ax[3].plot(Tb_183_df.index,Tb_183_df["195.81"],label="(183.31 +/- 12.5) GHz",
+                     color="grey")
+        except:
+            pass
+        ax[3].set_ylabel("T$_{b}$ in K")
+        ax[3].set_xlabel("Time in UTC")
+        ax[3].set_ylim([150,350])
+        ax[3].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+        #ax[3].legend(loc="center left",bbox_to_anchor=(1.0,0.5),fontsize=12)
+        for axis in ['bottom','left']:
+            ax[3].spines[axis].set_linewidth(2)
+            ax[3].tick_params(width=2)        
+        
+        # legends or colorbars:
+        lh, ll = ax[0].get_legend_handles_labels()
+        lg = ax[0].legend(handles=lh, labels=ll, loc="lower center",
+                          bbox_to_anchor=(0.5,1.05), ncol=4, handletextpad=0,
+                          columnspacing=1, borderaxespad=0, handlelength=0,
+                          fontsize=fs_small)
+        for item in lg.legendHandles:
+                item.set_visible(False)
+        for k, text in enumerate(lg.get_texts()):
+            text.set_color(k_colors[k])
+        
+        lh, ll = ax[1].get_legend_handles_labels()
+        lg = ax[1].legend(handles=lh, labels=ll, loc="lower center", 
+                          bbox_to_anchor=(0.5,1.05), ncol=4, handletextpad=0,
+                          columnspacing=1, borderaxespad=0, handlelength=0,
+                          fontsize=fs_small)
+        for item in lg.legendHandles:
+                item.set_visible(False)
+        for k, text in enumerate(lg.get_texts()):
+            text.set_color(v_colors[k])
+        
+        lh, ll = ax[2].get_legend_handles_labels()
+        lg = ax[2].legend(handles=lh, labels=ll, loc="lower center", 
+                          bbox_to_anchor=(0.5,1.05), ncol=3, handletextpad=0,
+                          columnspacing=1, borderaxespad=0, handlelength=0,
+                          fontsize=fs_small)
+        for item in lg.legendHandles:
+                item.set_visible(False)
+        for k, text in enumerate(lg.get_texts()):
+            text.set_color(w_colors[k])
+        
+        lh, ll = ax[3].get_legend_handles_labels()
+        lg = ax[3].legend(handles=lh, labels=ll, loc="lower center",
+                          bbox_to_anchor=(0.5,1.05), ncol=3, handletextpad=0,
+                          columnspacing=1, borderaxespad=0, handlelength=0,
+                          fontsize=fs_small)
+        for item in lg.legendHandles:
+                item.set_visible(False)
+        for k, text in enumerate(lg.get_texts()):
+            text.set_color(g_colors[k])
+        ax[0].set_ylim(bottom=tb_lims_k[0], top=tb_lims_k[1])
+        ax[1].set_ylim(bottom=tb_lims_v[0], top=tb_lims_v[1])
+        ax[2].set_ylim(bottom=tb_lims_wf[0], top=tb_lims_wf[1])
+        ax[3].set_ylim(bottom=tb_lims_g[0], top=tb_lims_g[1])
+        #define_color_map
+        for axx in ax:
+            if not axx==ax[4]:
+                axx.spines.right.set_visible(False)
+                axx.spines.top.set_visible(False)
+            #axx.set_visible({"top":False,"right":False})
+            axx = no_pd_dt_set_xticks_and_xlabels(ax=axx,
+                                time_extend=time_extent)
+        # Add surface mask
+        # plot AMSR2 sea ice concentration
+        blue_colorbar=cm.get_cmap('Blues_r', 22)
+        blue_cb=blue_colorbar(np.linspace(0, 1, 22))
+        brown_rgb = np.array(colors.hex2color(colors.cnames['brown']))
+        
+        blue_cb[:2, :] = [*brown_rgb,1]
+        newcmp = ListedColormap(blue_cb)
+        bah_df=pd.DataFrame(data=np.nan,columns=["sea_ice"],
+                            index=pd.DatetimeIndex(Tb_df.index))
+        bah_df["sea_ice"]=self.radiometer_tb_dict["surface_mask"].values[:]
+        im = ax[4].pcolormesh(np.array([pd.DatetimeIndex(bah_df["sea_ice"].index),
+                                        pd.DatetimeIndex(bah_df["sea_ice"].index)]),
+                              np.array([0, 1]),
+                              np.tile(np.array(bah_df["sea_ice"].values),(2,1)),
+                              cmap=newcmp, vmin=-0.1, vmax=1,
+                              shading='auto')
+        cax = fig.add_axes([0.7, 0.1, 0.15, ax[4].get_position().height])
+        C1=fig.colorbar(im, cax=cax, orientation='horizontal')
+        C1.set_label(label='Sea ice [%]',fontsize=fs_small)
+        C1.ax.tick_params(labelsize=fs_small)
+        ax[4].tick_params(axis='x', labelleft=False, 
+                          left=False,labelsize=fs_small)
+        ax[4].tick_params(axis='y', labelleft=False, left=False)
+        ax[4].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        # set labels:
+        ax[4].set_xlabel("Time (HH:MM)",fontsize=fs_small)#" of {str(time_var[round(len(time_var)/2)].values)[:10]}",
+        #                 fontsize=fs_small)
+        
+        # Limit axis spacing:
+        #plt.subplots_adjust(hspace=0.35)			# removes space between subplots
+        box = ax[4].get_position()
+        
+        box.y0 = box.y0 + 0.025
+        box.y1 = box.y1 + 0.025
+        
+        ax[4]=ax[4].set_position(box)
+        
+        
+        radiometer_str="processed_radiometer"
+        
+        if calibrated: radiometer_str="calibrated and "+radiometer_str
+        fig_name="unified_radiometer_tb_quicklook_"+\
+            flight+"_"+self.cfg_dict["date"]+".png"
+        print(fig_name)
+        plot_path+="/unified_dataset/"
+        if not os.path.exists(plot_path):
+            os.makedirs(plot_path)
+        fig.savefig(plot_path+fig_name,dpi=300,bbox_inches="tight")
+        print("Figure saved as:",plot_path+fig_name)       
+        #self.define_quicklook_fig_name("TB")         
+        #fig_file=self.radiometer_fig_path+self.fig_name
+        #fig.savefig(fig_file,dpi=300,bbox_inches="tight")
+        #print(self.instrument," Quicklook saved as:",fig_file)
+        
     def plot_radiometer_TBs(self,date,raw_measurements=True,hourly=np.nan):
         matplotlib.rcParams.update({"font.size":18})
         print("Plotting ...")
@@ -748,7 +1074,7 @@ class Radiometer_Quicklook(Quicklook_Plotter):
         #            dpi=300,bbox_inches="tight")
         #print("Figure saved as : ",self.radiometer_fig_path+fig_name)        
         #return None
-#%%           
+#%% Radar Quicklook       
 class Radar_Quicklook(Quicklook_Plotter):
     def __init__(self,cfg_dict):
         super(Radar_Quicklook,self).__init__(cfg_dict)
@@ -1084,8 +1410,152 @@ class Radar_Quicklook(Quicklook_Plotter):
         fig.savefig(self.radar_fig_path+fig_name,bbox_inches="tight",dpi=300)
         print("Figure saved as:",self.radar_fig_path+fig_name)
     
-    def unified_radar_quicklook(self,):
-        pass
+    def unified_radar_quicklook(self,flight,plot_path, calibrated_radar=True):
+        # copied from HALO-(AC)³ Budget closure
+        #import matplotlib.pyplot as plt
+        #import seaborn as sns
+        processed_radar=self.processed_radar
+        time_var=np.array(processed_radar.time[:])        
+        time_extent = measurement_instruments_ql.\
+                        HALO_Devices.numpydatetime64_to_datetime(time_var[-1]) -\
+                    measurement_instruments_ql.\
+                        HALO_Devices.numpydatetime64_to_datetime(time_var[0])
+
+        fig,axs=plt.subplots(4,1,figsize=(14,12),
+                             gridspec_kw=dict(height_ratios=(1,0.04,1,0.1),
+                             hspace=0.2),sharex=True)
+        y=np.array(processed_radar["height"][:])
+        statement="Plotting HAMP Cloud Radar (processed"
+        if not calibrated_radar: statement+=")"
+        else: statement+=" and calibrated)"
+        print(statement)
+        matplotlib.rcParams['axes.linewidth'] = 2
+        #######################################################################
+        #######################################################################
+        ### Processed radar
+        surface_Zg=processed_radar["Zg"][:,4]
+        surface_Zg=surface_Zg.where(surface_Zg!=-888.)
+        
+        #rain_rate=get_rain_rate(surface_Zg)
+        #sys.exit()
+        #processed_radar
+        time=pd.DatetimeIndex(np.array(processed_radar["dBZg"].time[:]))
+        #Plotting
+        C1=axs[0].pcolormesh(time,y,np.array(processed_radar["dBZg"][:]).T,
+                         cmap=cmaeri.roma_r,vmin=-30,vmax=30)
+        print("dBZ plotted")
+        
+        cax1=fig.add_axes([0.95, 0.625, 0.01, 0.15])
+        cb = plt.colorbar(C1,cax=cax1,orientation='vertical',extend="both")
+        cb.set_label('Reflectivity (dBZ)')
+        axs[0].set_xlabel('')
+        axs[0].set_yticks([0,2000,4000,6000,8000,10000,12000])
+        axs[0].set_ylim([0,12000])
+        axs[0].set_yticklabels(["0","2","4","6","8","10","12"])
+        axs[0].set_xticklabels([])
+        axs[0].set_ylabel("Height (km)")
+        for axis in ['bottom','left']:
+            axs[0].spines[axis].set_linewidth(2)
+            axs[0].tick_params(width=2,length=6)
+        axs[0].spines.right.set_visible(False)
+        axs[0].spines.top.set_visible(False)
+        #axs[0].spines.bottom.set_bounds()
+        #axs[0].spines.left.set_bounds(0,12000)
+        axs[1].tick_params(left=False,bottom=False)
+        axs[1].set_yticklabels([])
+        axs[1].set_xticklabels([])
+        axs[1].spines.right.set_visible(False)
+        axs[1].spines.top.set_visible(False)
+        axs[1].spines.left.set_visible(False)
+        axs[1].spines.bottom.set_visible(False)
+        sns.despine(offset=10,ax=axs[0])
+        # Radar LDR
+        C2=axs[2].pcolor(time,y,np.array(processed_radar["LDRg"][:].T),cmap=cmaeri.batlowK,vmin=-25, vmax=-10)        
+        axs[2].set_yticks([0,2000,4000,6000,8000,10000,12000])
+        axs[2].set_ylim([0,12000])
+        axs[2].set_yticklabels(["0","2","4","6","8","10","12"])
+        print("LDR plotted")
+        axs[2].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))        
+        axs[2].set_xticklabels([])
+        axs[2].set_ylabel("Height (km)")
+        for axis in ['bottom','left']:
+            axs[2].spines[axis].set_linewidth(2)
+            axs[2].tick_params(width=2,length=6)
+        
+        cax2=fig.add_axes([0.95, 0.25, 0.01, 0.15])
+    
+        cb = plt.colorbar(C2,cax=cax2,orientation='vertical',extend="both")
+        cb.set_label('LDR (dB)')
+        sns.despine(offset=10,ax=axs[2])
+        
+        fs = 14
+        fs_small = fs - 2
+        fs_dwarf = fs - 4
+        marker_size = 15
+            
+        bah_df=pd.DataFrame()
+        bah_df["sea_ice"]=pd.Series(data=np.array(processed_radar["radar_flag"][:,0]),
+                            index=pd.DatetimeIndex(np.array(processed_radar.time[:])))
+
+        blue_colorbar=cm.get_cmap('Blues_r', 22)
+        blue_cb=blue_colorbar(np.linspace(0, 1, 22))
+        brown_rgb = np.array(colors.hex2color(colors.cnames['brown']))
+        blue_cb[:2, :] = [*brown_rgb,1]
+        newcmp = ListedColormap(blue_cb)
+        im = axs[3].pcolor(
+            np.array([pd.DatetimeIndex(bah_df["sea_ice"].index),
+                      pd.DatetimeIndex(bah_df["sea_ice"].index)]),
+            np.array([0, 1]),
+            np.tile(np.array(bah_df["sea_ice"].values),(2,1)),
+            #np.array([bah_df["sea_ice"].values/100]),
+            cmap=newcmp, vmin=-0.1, vmax=1,shading='nearest')
+        axs[3].set_yticklabels([])
+        for axx in axs: 
+            #axx.set_visible({"top":False,"right":False})
+            axx = no_pd_dt_set_xticks_and_xlabels(ax=axx,
+                                time_extend=time_extent)
+        #axs[3].
+        cax = fig.add_axes([0.7, 0.025, 0.1, axs[3].get_position().height])
+        sns.despine(ax=cax)
+        C1=fig.colorbar(im, cax=cax, orientation='horizontal')
+        C1.set_label(label='Sea ice [%]',fontsize=fs_small)
+        C1.ax.tick_params(labelsize=fs_small,width=2)
+        
+        axs[3].tick_params(axis='x', labelleft=False, 
+                           left=False,labelsize=fs)
+        axs[3].tick_params(axis='y', labelleft=False, left=False,
+                           width=2,length=6)
+        axs[3].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        axs[3].set_xlabel("Time (HH:MM)",fontsize=fs_small)
+        #time_var=bah_df.index
+        # time extent:
+            #time_extent = Measurement_Instruments_QL.\
+                #                        HALO_Devices.\
+                    #                            numpydatetime64_to_datetime(time_var[-1]) -\
+                        #                        Measurement_Instruments_QL.\
+                            #                            HALO_Devices.numpydatetime64_to_datetime(time_var[0])        
+                            #axs[3].set_xlabel(f"Time (HH:MM) of {str(time_var[round(len(time_var)/2)].values)[:10]}",
+                            #                         fontsize=fs_small)
+
+        # Limit axis spacing:
+        plt.subplots_adjust(hspace=0.35)			# removes space between subplots
+            
+        #box = axs[3].get_position()        
+            
+        #box.y0 = box.y0 + 0.025
+        #box.y1 = box.y1 + 0.025        
+        #axs[3]=axs[3].set_position(box)
+        radar_str="processed_radar"
+        
+        if calibrated_radar: radar_str="calibrated and "+radar_str
+        fig_name="unified_radar_dbz_ldr_quicklook_"+\
+            flight+"_"+self.cfg_dict["date"]+".png"
+        print(fig_name)
+        plot_path+="/unified_dataset/"
+        if not os.path.exists(plot_path):
+            os.makedirs(plot_path)
+        fig.savefig(plot_path+fig_name,dpi=300,bbox_inches="tight")
+        print("Figure saved as:",plot_path+fig_name)
     
     def plot_only_precip_rates(self,halo_era5,halo_icon_hmp,
                                precipitation_rate,ar_of_day,

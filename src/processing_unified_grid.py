@@ -423,7 +423,8 @@ class Radiometer_Processing():
         ds["surface_mask"].attrs={"mask values":['0 : sea', '0-1 : sea_ice_cover',
                                             '-.1 : surface',]}
         # loc radar mask to unified grid
-        
+        ds["surface_mask"].attrs["source"]=\
+            "AMSR-2 sea-ice cover: Spreen et al. (2018); doi:10.1029/2005JC003384."
         # interpolate to get rid off single grid values
         print("Surface mask values added to unified grid")
         return ds
@@ -511,7 +512,11 @@ class Radar_Processing():
             ds=self.fill_gaps(ds)
         if Performance.str2bool(self.cfg_dict["remove_clutter"]):
             ds=self.remove_clutter(ds)
-        
+        if Performance.str2bool(self.cfg_dict["add_radar_mask_values"]):
+            radar_vars=['dBZg', 'Zg', 'LDRg', 'RMSg', 'VELg', 'SNRg']
+            for var in radar_vars:
+                ds[var]=ds[var].where(ds["radar_flag"].isnull(), drop=True)
+                #xr.where(ds["radar_flag"]!=-0.1,ds[var],np.nan)
         if Performance.str2bool(self.cfg_dict["remove_side_lobes"]):
             ds=self.remove_side_lobes(ds)
         if Performance.str2bool(self.cfg_dict["calibrate_radar"]):
@@ -608,6 +613,8 @@ class Radar_Processing():
         ds["radar_flag"]=xr.DataArray(data=radar_mask_uni,
                                       dims=coords_dict.keys())
         ds["radar_flag"].attrs=radar_mask_info
+        ds["radar_flag"].attrs["source"]=\
+            "AMSR-2 sea-ice cover: Spreen et al. (2018); doi:10.1029/2005JC003384."
         print("Radar mask values added to unified grid")
         return ds
     
@@ -632,9 +639,9 @@ class Radar_Processing():
         # Load unified bahamas dataset
         bahamas_path=self.cfg_dict["campaign_path"]+"Flight_Data/"+\
                     self.cfg_dict["campaign"]+"/all_nc/"
-        bahamas_fname="HALO_bahamas_unified_"+self.cfg_dict["RF"]+"_"+\
-            self.cfg_dict["flight_date_used"]+"_v"+\
-            self.cfg_dict["version"]+"."+self.cfg_dict["subversion"]+".nc"
+        bahamas_fname="HALO_"+self.cfg_dict["campaign"]+"_bahamas_unified_"+\
+                        self.cfg_dict["RF"]+"_"+self.cfg_dict["flight_date_used"]+"_v"+\
+                            self.cfg_dict["version"]+"."+self.cfg_dict["subversion"]+".nc"
         
         bahamas_ds=xr.open_dataset(bahamas_path+bahamas_fname)
         height=ds["height"]

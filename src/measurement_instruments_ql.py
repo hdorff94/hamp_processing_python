@@ -736,7 +736,7 @@ class Dropsondes(HALO_Devices):
                 RH    = self.sonde_dict["rh"][time].values * units.percent
                 P     = self.sonde_dict["pres"][time].values * units.hPa
                 Tdew  = mpcalc.dewpoint_from_relative_humidity(T,RH)
-                MR    = mpcalc.mixing_ratio_from_relative_humidity(RH, T, P)
+                MR    = mpcalc.mixing_ratio_from_relative_humidity(P, T, RH)
                 wspeed= self.sonde_dict["wspd"][time].values * \
                                                     units.meter / units.second
                 wdir= np.deg2rad(self.sonde_dict["wdir"][time].values)
@@ -964,7 +964,8 @@ class HAMP(HALO_Devices):
        #sys.exit()
        if newest_version:       
           data_file=campaign_netcdf.CPGN_netCDF.identify_newest_version(
-              nc_path,device="radiometer",for_calibrated_file=open_calibrated)
+              nc_path,device="radiometer",date=self.cfg_dict["flight_date_used"],
+              for_calibrated_file=open_calibrated)
        if not open_calibrated:
            self.processed_hamp_ds=xr.open_dataset(data_file)
        else:
@@ -1065,7 +1066,7 @@ class RADAR(HALO_Devices):
             else:
                 print("Correct the radar attitude by BAHAMAS")        
         
-                radarAttitude.run_att_correction(
+                radarattitude.run_att_correction(
                                     self.cfg_dict["Flight_Dates_used"],
                                     self.cfg_dict,use_smart=\
                                         not attitude_correction_by_bahamas)
@@ -1076,8 +1077,8 @@ class RADAR(HALO_Devices):
     def open_processed_radar_data(self,newest_version=True,
                                   reflectivity_is_calibrated=True):
        import campaign_netcdf
-       nc_path=self.cfg_dict["device_data_path"]+"all_nc/radar_"+\
-       str([*self.cfg_dict["Flight_Dates_used"]][0])
+       nc_path=self.cfg_dict["device_data_path"]+"all_nc/"#"radar_"+\
+                   	#str([*self.cfg_dict["Flight_Dates_used"]][0])
        if newest_version:       
           data_file=campaign_netcdf.CPGN_netCDF.identify_newest_version(
               nc_path,for_calibrated_file=reflectivity_is_calibrated)
