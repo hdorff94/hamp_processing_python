@@ -271,24 +271,24 @@ def main(campaign_name,rf,
 
 if __name__=="__main__":
    campaign="HALO_AC3"
-   research_flights_to_process=[#"RF01",
-                                #"RF02",
-                                #"RF03",
-                                #"RF04",
-                                #"RF05",
-                                #"RF06",
-                                #"RF07",
-                                #"RF08",#,
-                                #"RF09",
-                                #"RF10",#
-                                #"RF11",
-                                #"RF12",
-                                #"RF13",
-                                #"RF14",
-                                #"RF15",
-                                #"RF16",
+   research_flights_to_process=["RF01",
+                                "RF02",
+                                "RF03",
+                                "RF04",
+                                "RF05",
+                                "RF06",
+                                "RF07",
+                                "RF08",#,
+                                "RF09",
+                                "RF10",#
+                                "RF11",
+                                "RF12",
+                                "RF13",
+                                "RF14",
+                                "RF15",
+                                "RF16",
                                 "RF17",
-                                #"RF18"
+                                "RF18"
                                 ]
    
    for research_flight in research_flights_to_process:
