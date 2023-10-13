@@ -1601,7 +1601,7 @@ class Radar_Quicklook(Quicklook_Plotter):
                pd.Timestamp(inflow_times[0]),
                alpha=0.5, color='grey')   
 
-        ax1.legend(loc="top left",ncol=6)
+        ax1.legend(loc="upper left",ncol=6)
         #ax1.set_xticks=axs[1].get_xticks()
         ax1.set_xticklabels([])
         ax1.set_ylabel("Precipitation\nrate ($\mathrm{mmh}^{-1}$)")
@@ -1769,7 +1769,7 @@ class Radar_Quicklook(Quicklook_Plotter):
                alpha=0.5, color='grey')   
 
         axs[2].set_ylim([0,1.0])
-        axs[2].legend(loc="top left",ncol=6,fontsize=font_size-2)
+        axs[2].legend(loc="upper left",ncol=6,fontsize=font_size-2)
         axs[2].set_xticks=axs[1].get_xticks()
         axs[2].set_xticklabels([])
         axs[2].set_ylabel("Precipitation\nrate ($\mathrm{mmh}^{-1}$)")
@@ -1794,7 +1794,8 @@ class Radar_Quicklook(Quicklook_Plotter):
                 pd.DatetimeIndex(bah_df["sea_ice"].index),
                 pd.DatetimeIndex(bah_df["sea_ice"].index)]),
                 np.array([0, 1]),
-                np.array([bah_df["sea_ice"].values/100]),
+                np.tile(np.array(bah_df["sea_ice"].values),(2,1)),
+                #np.array([bah_df["sea_ice"].values/100,bah_df["sea_ice"].values/100]),
                 cmap=newcmp, vmin=-0.1, vmax=1,
                 shading='auto')
 

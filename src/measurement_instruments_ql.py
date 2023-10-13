@@ -692,7 +692,7 @@ class Dropsondes(HALO_Devices):
             #PW= pd.Series(data=np.nan,index=self.sonde_dict["AirT"].index)
             #for sonde in range(self.sonde_dict["Dewpoint"].shape[0]):
             try:
-                pw_value= mpcalc.precipitable_water(Tdew,P)
+                pw_value= mpcalc.precipitable_water(P,Tdew)
                 self.sonde_dict["IWV"].iloc[t]=pw_value.magnitude/0.99
             
             except:
@@ -1080,8 +1080,9 @@ class RADAR(HALO_Devices):
        nc_path=self.cfg_dict["device_data_path"]+"all_nc/"#"radar_"+\
                    	#str([*self.cfg_dict["Flight_Dates_used"]][0])
        if newest_version:       
-          data_file=campaign_netcdf.CPGN_netCDF.identify_newest_version(
-              nc_path,for_calibrated_file=reflectivity_is_calibrated)
+          data_file=campaign_netcdf.CPGN_netCDF.identify_newest_version(nc_path,
+              date=self.cfg_dict["flight_date_used"],
+              for_calibrated_file=reflectivity_is_calibrated)
        if not reflectivity_is_calibrated:
            self.processed_radar_ds=xr.open_dataset(data_file)
        else:

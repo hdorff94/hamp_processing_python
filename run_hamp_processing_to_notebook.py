@@ -18,8 +18,8 @@ def main(campaign_name,rf,
     import sys
     import init_paths
     # Define paths
-    working_path=init_paths.main(
-        base_path="C:\\Users\\u300737\\Desktop\\Desktop_alter_Rechner\\"+\
+    working_path=init_paths.main()
+        path_name="C:\\Users\\u300737\\Desktop\\Desktop_alter_Rechner\\"+\
                     "PhD_UHH_WIMI\\")
     actual_working_path=os.getcwd()
     airborne_data_importer_path=working_path+"/Work/GIT_Repository/"+\
@@ -151,7 +151,7 @@ def main(campaign_name,rf,
                              "add_radar_mask_values":True,    # if false mask 
                                                                        # is not added to the data
                                       
-                             "version":2,
+                             "version":0,
                              "subversion":6,
                              "quicklooks":False,               # default True
                              "missing_value":-888,
@@ -171,7 +171,7 @@ def main(campaign_name,rf,
                                       "seasurface_mask":1,
                                       "num_RangeGates_for_sfc":4})
     cfg.add_entries_to_config_object(processing_cfg_name,
-                                     {"calibrate_radiometer":True, # 1.x
+                                     {"calibrate_radiometer":False, # 1.x
                                       "calibrate_radar":True})     # 1.x
     
     #%%
@@ -271,24 +271,24 @@ def main(campaign_name,rf,
 
 if __name__=="__main__":
    campaign="HALO_AC3"
-   research_flights_to_process=["RF01",
-                                "RF02",
-                                "RF03",
-                                "RF04",
+   research_flights_to_process=[#"RF01",
+                                #"RF02",
+                                #"RF03",
+                                #"RF04",
                                 "RF05",
                                 "RF06",
-                                "RF07",
-                                "RF08",#,
-                                "RF09",
-                                "RF10",#
-                                "RF11",
-                                "RF12",
-                                "RF13",
-                                "RF14",
-                                "RF15",
-                                "RF16",
-                                "RF17",
-                                "RF18"
+                                #"RF07",
+                                #"RF08",#,
+                                #"RF09",
+                                #"RF10",#
+                                #"RF11",
+                                #"RF12",
+                                #"RF13",
+                                #"RF14",
+                                #"RF15",
+                                #"RF16",
+                                #"RF17",
+                                #"RF18"
                                 ]
    
    for research_flight in research_flights_to_process:
