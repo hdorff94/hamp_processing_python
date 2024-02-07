@@ -7,9 +7,9 @@ Created on Fri Jan 29 08:09:31 2021
 @author: u300737
 """
 def main(campaign_name,rf,
-         instruments_to_unify=[#"bahamas",
+         instruments_to_unify=["bahamas",
                                #"radar",
-                               "radiometer",
+                               #"radiometer",
                                #"dropsondes", 
                                ] # default bahamas, dropsondes, radar, radiometer.
          ):
@@ -19,10 +19,10 @@ def main(campaign_name,rf,
     import init_paths
     # Define paths
     working_path=init_paths.main()
-        path_name="C:\\Users\\u300737\\Desktop\\Desktop_alter_Rechner\\"+\
-                    "PhD_UHH_WIMI\\")
+    path_name="C:\\Users\\u300737\\Desktop\\Desktop_alter_Rechner\\"+\
+                    "PhD_UHH_WIMI\\"
     actual_working_path=os.getcwd()
-    airborne_data_importer_path=working_path+"/Work/GIT_Repository/"+\
+    airborne_data_importer_path=working_path+"/../../Work/GIT_Repository/"+\
                                 "hamp_processing_py/"+\
                                     "hamp_processing_python/" 
     # This is also the major path where your data will be stored
@@ -271,24 +271,24 @@ def main(campaign_name,rf,
 
 if __name__=="__main__":
    campaign="HALO_AC3"
-   research_flights_to_process=[#"RF01",
-                                #"RF02",
-                                #"RF03",
-                                #"RF04",
+   research_flights_to_process=["RF01",
+                                "RF02",
+                                "RF03",
+                                "RF04",
                                 "RF05",
                                 "RF06",
-                                #"RF07",
-                                #"RF08",#,
-                                #"RF09",
-                                #"RF10",#
-                                #"RF11",
-                                #"RF12",
-                                #"RF13",
-                                #"RF14",
-                                #"RF15",
-                                #"RF16",
-                                #"RF17",
-                                #"RF18"
+                                "RF07",
+                                "RF08",#,
+                                "RF09",
+                                "RF10",#
+                                "RF11",
+                                "RF12",
+                                "RF13",
+                                "RF14",
+                                "RF15",
+                                "RF16",
+                                "RF17",
+                                "RF18"
                                 ]
    
    for research_flight in research_flights_to_process:

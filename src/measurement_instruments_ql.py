@@ -684,13 +684,6 @@ class Dropsondes(HALO_Devices):
             Tdew  = mpcalc.dewpoint_from_relative_humidity(T,RH)
             if t==8:
                 print(T,RH,P)
-            #MR    = mpcalc.mixing_ratio_from_relative_humidity(RH, T, P)
-            #self.sonde_dict["MR"] = pd.DataFrame(data=np.array(MR),
-            #                            index=self.sonde_dict["AirT"].index)
-            #self.sonde_dict["Dewpoint"]=pd.DataFrame(data=np.array(Tdew),
-            #                            index=self.sonde_dict["AirT"].index)
-            #PW= pd.Series(data=np.nan,index=self.sonde_dict["AirT"].index)
-            #for sonde in range(self.sonde_dict["Dewpoint"].shape[0]):
             try:
                 pw_value= mpcalc.precipitable_water(P,Tdew)
                 self.sonde_dict["IWV"].iloc[t]=pw_value.magnitude/0.99
@@ -700,6 +693,7 @@ class Dropsondes(HALO_Devices):
                 self.sonde_dict["IWV"].iloc[t]=pw_value
             
             t+=1
+    
     def calculate_ivt(self):
         """
         
@@ -1003,7 +997,7 @@ class RADAR(HALO_Devices):
         self.unified_radar_path=self.major_data_path+"all_nc/"
         self.att_corrected_radar_path=self.major_data_path+self.device_type+\
                                     "_"+self.name+"/"                
-    #%% Data Opening Procedures  
+    # Data Opening Procedures  
     def list_raw_radar_files_for_flight(self):
         print(self.raw_radar_path+"*"+str(self.date_of_flight)+'*.nc')
         self.radar_fnames = glob.glob(self.raw_radar_path+"*"+\
@@ -1207,7 +1201,7 @@ class RADAR(HALO_Devices):
             self.processed_radar_ds["LDRg"]=self.processed_radar_ds["LDRg"].\
                         fillna(float(self.cfg_dict["missing_value"]))
     
-    #%% Calibration stuff
+    #%% Calibration
     def get_calibration(self):
         flight=self.cfg_dict["Flight_Dates_used"].index[0]
         ## --> for specific campaigns
@@ -1229,14 +1223,208 @@ class RADAR(HALO_Devices):
                 self.dB_offset=dB_offsets[flight] # determined by F. Ewald
             else:
                 self.dB_offset=dB_offsets["mean"]
+    
     def show_calibration(self):
         self.get_calibration()
         print("The raw reflectivity has a offset of",self.dB_offset,"dB",
               " according to Ewald (2019)")
         print("This offset has to be added to Zg by:",
               "Zg_calib=Zg_raw*10**(0.1*self.dB_offset)")
+    #%% Melting layer detection and precipitation phase
     @staticmethod
+    def find_melting_layer(radar_dict,vertical_value_to_use="max"):
+        """
+        This routine identifies the melting layer using the radar LDR to then
+        distinguish between precipitation types. 
+        The ML detection is based on Austen (2023), who developped this 
+        method in his Bachelor thesis.
+
+        Parameters
+        ----------
+        radar_dict : TYPE
+            DESCRIPTION.
+        vertical_value_to_use : TYPE, optional
+            DESCRIPTION. The default is "max".
+
+        Returns
+        -------
+        ldr_mlayer_height : TYPE
+            DESCRIPTION.
+        low_ldr_df : TYPE
+            DESCRIPTION.
+        ldr_cutted_df : TYPE
+            DESCRIPTION.
+        mlayer_mask : TYPE
+            DESCRIPTION.
+
+        """
+        ldr_threshold=-17
+        lower_height_thres=5
+        maximum_height=2000
+        maximum_gradient=60
+        # based on Austen et al. 2023    
+        height=np.array(radar_dict["height"][:])
+        ldr_df=pd.DataFrame(data=np.array(radar_dict["LDRg"][:]),
+                     columns=height,
+                     index=pd.DatetimeIndex(
+                         np.array(radar_dict["time"])))
     
+        ldr_cutted_df=ldr_df.copy()
+    
+        low_ldr_df=ldr_cutted_df.iloc[:,lower_height_thres:70]
+        #-------------------------------------------------------------------------#
+        # LDR threshold
+        low_ldr_df[low_ldr_df<ldr_threshold]=np.nan
+    
+        # which value to use if a vertical column is above ldr_threshold
+        # my method was the maximum value which always shifts the bright band above
+        # version Austen is 
+        if vertical_value_to_use=="max":    
+            ldr_mlayer_height=low_ldr_df.idxmax(axis=1)
+        elif vertical_value_to_use=="lowest": # Austen et al. 2023
+            #this is a bad method but performs well
+            mask_of_ldr_values=low_ldr_df/low_ldr_df
+            ldr_mlayer_height=mask_of_ldr_values.idxmin(axis=1)
+        else:
+            Exception("you have to deside for one of the options (max,lowest)")
+        #-------------------------------------------------------------------------#
+        # LDR should always lie below maximum height defined above
+        ldr_mlayer_height[ldr_mlayer_height>maximum_height]=np.nan
+        
+        #-------------------------------------------------------------------------#
+        # Gradient criteria (continuity), it is less strong than in Austen et al.
+        ldr_ml_height_gradient=ldr_mlayer_height.diff()
+        strong_gradient=ldr_ml_height_gradient[\
+                            abs(ldr_ml_height_gradient)>maximum_gradient]
+        
+        # set value to nan for too strong gradients
+        ldr_mlayer_height.loc[strong_gradient.index]=np.nan
+        #-------------------------------------------------------------------------#
+        # 5s rolling mean
+        ldr_mlayer_height=ldr_mlayer_height.rolling("5s",min_periods=5).mean()   
+        #-------------------------------------------------------------------------#
+        # Melting layer mask
+        mlayer_mask=pd.Series(data=np.zeros(ldr_mlayer_height.shape[0]),
+                              index=ldr_mlayer_height.index)
+        mlayer_mask[~ldr_mlayer_height.isnull()]+=1
+        #-------------------------------------------------------------------------#
+        # max 10 s gap filling via interpolation
+        ldr_mlayer_height=ldr_mlayer_height.interpolate(method="polynomial",order=5,
+                                                        limit=10,limit_area="inside",
+                                                        limit_direction="both")
+        # Extrapolate
+        ldr_mlayer_height=ldr_mlayer_height.interpolate(method="polynomial",order=5,
+                                                        limit_area="outside",limit=10,
+                                                        fill_value="extrapolate")
+        # where mlayer mask was zero, so no melting layer
+        # but new interpolation now yields values
+        # period is uncertain
+        condition_1=mlayer_mask==0
+        condition_2=~ldr_mlayer_height.isnull()
+        both_conditions= condition_1 & condition_2
+        mlayer_mask[both_conditions]=2
+        #
+        mlayer_mask[ldr_mlayer_height.between(0,270,inclusive="right")]=2
+        #------------------------------------------------------------------------- #
+        #
+        return ldr_mlayer_height,low_ldr_df,ldr_cutted_df,mlayer_mask
+    
+    @staticmethod
+    def classify_precipitation_type(radar_dict, bb_height,bb_mask):
+        """
+        This routine uses the detected melting layer to then separate and 
+        classify the precipitation phases from the HALO radar near the surface.
+        This routine is based on Austen (2023),  who developped this 
+        method in his Bachelor thesis.
+
+        
+        Parameters
+        ----------
+        radar_dict : TYPE
+            DESCRIPTION.
+        bb_height : TYPE
+            DESCRIPTION.
+        bb_mask : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        precip_type_series : TYPE
+            DESCRIPTION.
+        sfc_zg_series : TYPE
+            DESCRIPTION.
+
+        """
+        surface_Zg=radar_dict["Zg"][:,4]
+        surface_Zg=surface_Zg.where(surface_Zg!=-888.)
+        sfc_zg_series=pd.Series(data=np.array(surface_Zg[:]),
+                                index=pd.DatetimeIndex(
+                                   np.array(surface_Zg.time[:])))
+        surface_type=pd.Series(data=np.array(radar_dict["radar_flag"].values[:,0]),
+                               index=sfc_zg_series.index)
+        
+        precip_type_series=pd.Series(data=np.nan,
+                                     index=pd.DatetimeIndex(
+                                         np.array(surface_Zg.time[:])))
+        precip_type_series[sfc_zg_series.isnull()]=0
+        precip_type_series[~sfc_zg_series.isnull()]=1.0 # snow
+        precip_type_series.loc[bb_mask==1.0]=2.0 # rain
+        precip_type_series.loc[bb_mask==2.0]=3.0 # uncertain    
+        precip_type_series[surface_type==-0.1]=-1.0
+        # take as last conditions do not anymore look for clear rain defined signals
+        # but maybe it is not important once applied to the rain reflectivities
+        return precip_type_series,sfc_zg_series
+    #%% Precipitation rates from catalogue of Z-R/S relationships
+    @staticmethod
+    def get_rain_rate(zg_series):
+        rain_rate=pd.DataFrame(data=np.nan, index=zg_series.index,
+                               columns=["norris","palmer","chandra"])
+        rain_rate["norris"]   = 1/466*zg_series**(1/1.47)
+        rain_rate["palmer"]   = 1/200*zg_series**(1/1.6)
+        rain_rate["chandra"]  = 1/177*zg_series**(1/1.11)
+        rain_rate["mean_rain"]= rain_rate.mean(axis=1)
+        return rain_rate
+    @staticmethod
+    def get_snow_rate(zg_series):
+        snow_rate=pd.DataFrame(data=np.nan,index=zg_series.index,
+                              columns=["schoger","matrosov","heymsfield"])
+        snow_rate["schoger"]   = 1/77.67*zg_series**(1/1.22)
+        snow_rate["matrosov"]  = 1/56*zg_series**(1/1.2)
+        snow_rate["heymsfield"]= 1/10.13*zg_series**(1/1.92)
+        snow_rate["mean_snow"] = snow_rate.mean(axis=1) 
+        return snow_rate
+    @staticmethod
+    def take_correct_precipitation_rates(zg_series_dict,surface_mask,bb_mask,z_for_snow="Z_e"):
+        precipitation_rate=pd.DataFrame(data=np.nan,
+                                        index=zg_series_dict["zg"].index,
+                               columns=["r_norris","r_palmer","r_chandra",
+                                       "s_schoger","s_matrosov","s_heymsfield",
+                                       "mean_snow","mean_rain","surface","precip_phase"])
+        default_rain_rate=RADAR.get_rain_rate(zg_series_dict["zg"])
+        if z_for_snow=="Z_e":
+            z_snow=zg_series_dict["ze"]
+        else:
+            z_snow=zg_series_dict["zg"]
+            
+        default_snow_rate=RADAR.get_snow_rate(z_snow)
+        #Snow rate
+        precipitation_rate["s_schoger"].loc[bb_mask==1]=default_snow_rate["schoger"]
+        precipitation_rate["s_matrosov"].loc[bb_mask==1]=default_snow_rate["matrosov"]
+        precipitation_rate["s_heymsfield"].loc[bb_mask==1]=default_snow_rate["heymsfield"]
+        precipitation_rate["mean_snow"].loc[bb_mask==1]=default_snow_rate["mean_snow"]
+        #Rain rate
+        precipitation_rate["r_norris"].loc[bb_mask==2]=default_rain_rate["norris"]
+        precipitation_rate["r_palmer"].loc[bb_mask==2]=default_rain_rate["palmer"]
+        precipitation_rate["r_chandra"].loc[bb_mask==2]=default_rain_rate["chandra"]
+        precipitation_rate["mean_rain"].loc[bb_mask==2]=default_rain_rate["mean_rain"]
+        precipitation_rate["surface"]=surface_mask.values
+        precipitation_rate["precip_phase"].loc[bb_mask==1]="snow"
+        precipitation_rate["precip_phase"].loc[bb_mask==2]="rain"
+        precipitation_rate["precip_phase"].loc[bb_mask==3]="uncertain"
+        precipitation_rate["precip_phase"].loc[bb_mask==-1]="land"
+        return precipitation_rate    
+    
+    @staticmethod
     def calc_radar_cfad(df,
                     reflectivity_bins=np.linspace(-60,60,121),
                     ):
