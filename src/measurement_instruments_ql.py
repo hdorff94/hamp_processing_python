@@ -1543,10 +1543,15 @@ class SEA_ICE():
 
 #%% POLAR Aircraft
 class POLAR_Devices():
-    def __init__(self,cfg_dict):
+    def __init__(self,cfg_dict,
+                 major_path=""):
         self.cfg_dict=cfg_dict
         self.campaign_name=self.cfg_dict["campaign"]
-        self.major_data_path=os.getcwd()+"/Flight_Data/"+self.campaign_name+"/"
+        if not major_path=="":
+            self.major_data_path=major_path
+        else:
+            self.major_data_path=os.getcwd()+\
+                "/Flight_Data/"+cfg_dict["campaign"]+"/"
         self.polar_joint_devices=["gps_ins"]
         self.avail_halo_devices={}
         avail_list=[False]*len(self.polar_joint_devices)

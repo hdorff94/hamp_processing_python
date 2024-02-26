@@ -1611,7 +1611,8 @@ class Radar_Quicklook(Quicklook_Plotter):
                                 dpi=300,bbox_inches="tight")
         print("Figure saved as:",self.plot_path+fig_name)
         
-    def processed_radar_rain_rate(self,halo_era5,halo_icon_hmp,
+    def processed_radar_rain_rate_model_comparison(self,
+                                  halo_era5,halo_icon_hmp,
                                   precipitation_rate,inflow_times,
                                   internal_times,outflow_times,ar_of_day,
                                   calibrated_radar=True,
