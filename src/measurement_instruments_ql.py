@@ -1374,7 +1374,7 @@ class RADAR(HALO_Devices):
         # take as last conditions do not anymore look for clear rain defined signals
         # but maybe it is not important once applied to the rain reflectivities
         return precip_type_series,sfc_zg_series
-    #%% Precipitation rates from catalogue of Z-R/S relationships
+    # Precipitation rates from catalogue of Z-R/S relationships
     @staticmethod
     def get_rain_rate(zg_series):
         rain_rate=pd.DataFrame(data=np.nan, index=zg_series.index,
@@ -1423,6 +1423,23 @@ class RADAR(HALO_Devices):
         precipitation_rate["precip_phase"].loc[bb_mask==3]="uncertain"
         precipitation_rate["precip_phase"].loc[bb_mask==-1]="land"
         return precipitation_rate    
+    @staticmethod
+    def mimic_attenuation(processed_radar,surface_mask,precip_type_series):
+        # Create higher radar reflectivities 
+        strong_radar=processed_radar.copy()
+        # Add 4 dBZ that can be expected due to radar attentuation (gaseous and hydrometeor)
+        strong_radar["dBZg"]=strong_radar["dBZg"]+4 
+        strong_radar["Zg"]=10**(1/10*strong_radar["dBZg"])
+        strong_z_series_dict={}
+        strong_z_series_dict["zg"]=pd.DataFrame(strong_radar["Zg"][:,4],
+                                                index=pd.DatetimeIndex(np.array(strong_radar["Zg"].time[:])))
+        #calculate precipitation rate for stronger z
+        strong_precip_rate=RADAR.take_correct_precipitation_rates(strong_z_series_dict,surface_mask,
+                                                                      precip_type_series,
+                                                    z_for_snow="Zg")
+        strong_precip_rate=strong_precip_rate.fillna(0)
+        strong_precip_rate["rate"]=strong_precip_rate["mean_snow"]+strong_precip_rate["mean_rain"]
+        return strong_precip_rate
     
     @staticmethod
     def calc_radar_cfad(df,

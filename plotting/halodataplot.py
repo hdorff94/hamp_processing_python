@@ -1610,6 +1610,78 @@ class Radar_Quicklook(Quicklook_Plotter):
         precip_rate_fig.savefig(self.plot_path+fig_name,
                                 dpi=300,bbox_inches="tight")
         print("Figure saved as:",self.plot_path+fig_name)
+    
+    def plot_precip_rates_comparison(self,halo_era5,halo_icon_hmp,
+                               precipitation_rate,strong_radar,
+                               ar_of_day,inflow_times,
+                               radar_str,reflectivity_for_snow="Zg"):
+        # cut to internal leg
+        inflow_precipitation_rate=precipitation_rate.loc[inflow_times]
+        internal_era5 = halo_era5[inflow_times]
+        internal_icon = halo_icon_hmp[inflow_times]
+        
+        inflow_rain_rate=inflow_precipitation_rate[["r_norris","r_palmer",
+                                                "r_chandra"]]
+        inflow_snow_rate=inflow_precipitation_rate[["s_schoger","s_matrosov",
+                                                    "s_heymsfield"]]
+        precip_rate_fig=plt.figure(figsize=(16,9))
+        ax1=precip_rate_fig.add_subplot(111)
+        ax1.fill_between(inflow_rain_rate.index,
+            inflow_rain_rate.min(axis=1).values,y2=inflow_rain_rate.max(axis=1).values,
+            color="lightgreen",label="HALO rain: "+\
+                str(round(float(inflow_rain_rate["mean_rain"].mean()),2)))
+        ax1.fill_between(inflow_snow_rate.index,
+            inflow_snow_rate.min(axis=1).values,
+            y2=inflow_snow_rate.max(axis=1).values,
+            color="lightblue",label="HALO snow: "+\
+                str(round(float(inflow_snow_rate["mean_snow"].mean()),2)))
+        ax1.plot(halo_era5["Interp_Precip"],lw=2,ls="--",color="k",label="ERA5:"+\
+            str(round(float(halo_era5["Interp_Precip"].mean()),2)),zorder=5)
+        ax1.plot(halo_icon_hmp["Interp_Precip"],lw=3,ls="-",color="k",label="ICON-2km:"+\
+            str(round(float(halo_icon_hmp["Interp_Precip"].mean()),2)),zorder=6)
+        #ax1.plot(halo_icon_hmp["Interp_Precip"],lw=2,ls="--",color="w",zorder=7)
+        #ax1.plot(precipitation_rate["mean_rain"],lw=3,color="darkgreen",
+        #    label="avg_r:"+str(round(float(precipitation_rate["mean_rain"].mean()),2)))
+        #ax1.plot(precipitation_rate["r_norris"],lw=1,color="lightgreen",
+        #    label="nor:"+str(round(float(precipitation_rate["r_norris"].mean()),2)))
+        #ax1.plot(precipitation_rate["r_palmer"],lw=1,color="mediumseagreen",
+        #    label="pal:"+str(round(float(precipitation_rate["r_palmer"].mean()),2)))
+        #ax1.plot(precipitation_rate["r_chandra"],lw=1,color="green",
+        #    label="cha:"+str(round(float(precipitation_rate["r_chandra"].mean()),2)))
+        # snow 
+        #ax1.plot(precipitation_rate["mean_snow"],lw=3,color="darkblue",
+        #    label="avg_s:"+str(round(float(precipitation_rate["mean_snow"].mean()),2)))
+        #ax1.plot(precipitation_rate["s_schoger"],lw=0.5,color="lightblue",
+        #    label="sch:"+str(round(float(precipitation_rate["s_schoger"].mean()),2)))
+        #ax1.plot(precipitation_rate["s_matrosov"],lw=0.5,color="blue",
+        #    label="mat:"+str(round(float(precipitation_rate["s_matrosov"].mean()),2)))
+        #ax1.plot(precipitation_rate["s_heymsfield"],lw=0.5,color="cadetblue",
+        #    label="hey:"+str(round(float(precipitation_rate["s_heymsfield"].mean()),2)))
+        #
+        #if inflow_times[0]<outflow_times[-1]:
+        #    ax1.axvspan(pd.Timestamp(inflow_times[-1]),
+        #       pd.Timestamp(internal_times[0]),
+        #       alpha=0.5, color='grey')
+        #    ax1.axvspan(pd.Timestamp(internal_times[-1]),
+        #       pd.Timestamp(outflow_times[0]),
+        #       alpha=0.5, color='grey')   
+        #else:
+        #    ax1.axvspan(pd.Timestamp(outflow_times[-1]),
+        #       pd.Timestamp(internal_times[0]),
+        #       alpha=0.5, color='grey')
+        #    ax1.axvspan(pd.Timestamp(internal_times[-1]),
+        #       pd.Timestamp(inflow_times[0]),
+        #       alpha=0.5, color='grey')   
+
+        #ax1.legend(loc="upper left",ncol=6)
+        #ax1.set_xticks=axs[1].get_xticks()
+        #ax1.set_xticklabels([])
+        #ax1.set_ylabel("Precipitation\nrate ($\mathrm{mmh}^{-1}$)")
+        #fig_name=self.flight[0]+"_"+ar_of_day+"_Only_Rain_internal_"+\
+        #    radar_str+"_"+reflectivity_for_snow+".png"
+        #precip_rate_fig.savefig(self.plot_path+fig_name,
+        #                        dpi=300,bbox_inches="tight")
+        #print("Figure saved as:",self.plot_path+fig_name)
         
     def processed_radar_rain_rate_model_comparison(self,
                                   halo_era5,halo_icon_hmp,
