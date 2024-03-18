@@ -19,17 +19,17 @@ def main(campaign_name,rf,
     import init_paths
     # Define paths
     working_path=init_paths.main()
-    path_name="C:\\Users\\u300737\\Desktop\\Desktop_alter_Rechner\\"+\
-                    "PhD_UHH_WIMI\\"
+    #path_name="C:\\Users\\u300737\\Desktop\\Desktop_alter_Rechner\\"+\
+    #                "PhD_UHH_WIMI\\"
     actual_working_path=os.getcwd()
-    airborne_data_importer_path=working_path+"/../../Work/GIT_Repository/"+\
+    airborne_data_importer_path=actual_working_path+"/../../Work/GIT_Repository/"+\
                                 "hamp_processing_py/"+\
                                     "hamp_processing_python/" 
     # This is also the major path where your data will be stored
-                                    
     airborne_processing_module_path=actual_working_path+"/src/"
     airborne_plotting_module_path=actual_working_path+"/plotting/"
-    # Change paths
+
+    # Insert paths to import modules
     sys.path.insert(1,airborne_processing_module_path)
     sys.path.insert(2,airborne_plotting_module_path)
     sys.path.insert(3,airborne_data_importer_path)
@@ -52,6 +52,7 @@ def main(campaign_name,rf,
     except:
         print("Module Flight Campaign is not listed in the path",
               "Flights need to be defined manually.")
+
     Flight_Dates={}
     Flight_Dates["EUREC4A"]={"RF01":"20200119","RF02":"20200122",
                                  "RF03":"20200124","RF04":"20200126",
@@ -79,15 +80,12 @@ def main(campaign_name,rf,
                               "RF14":"20220407",
                               "RF15":"20220408",
                               "RF16":"20220410",
-                              "RF17":"20220411",
+                              ##"RF17":"20220411",
                               "RF18":"20220412"
                               }
-    
-    
-    #%%
-    # load config files
+        
+    #%% allocate configurator
     cfg=config_handler.Configuration(major_path=airborne_data_importer_path)
-    #major_cfg_name="major_cfg"
     processing_cfg_name="unified_grid_cfg"    
     major_cfg_name="major_cfg"
     
@@ -95,44 +93,39 @@ def main(campaign_name,rf,
     # The usual file name will follow the format: 
     # <instrument>_<date>_v<version-number>.nc
     # An additional file name prefix can be specified here (e.g. for EUREC4A),
-    
     # if no prefix is necessary, set to empty string ('')
-    # #filenameprefix = 'EUREC4A_HALO_';
-    #     filenameprefix = ''
+    # filenameprefix = 'EUREC4A_HALO_';
+    # filenameprefix = ''
     
     campaign=campaign_name
     filenameprefix = campaign+'_HALO_'
-    #%%
-    # Comments for data files
+    #%% comments for data files
     # Specify comment to be included into data files
     comment = 'Preliminary data! Uncalibrated Data.'+\
                 ' Only use for preliminary work!'
     # Specify contact information
     contact = 'henning.dorff@uni-hamburg.de'
     
-    #%%
+    #%% load configurations
     configurations=cfg.return_default_config_dict(major_cfg_name,
                                     processing_cfg_name,
                                     campaign,comment=comment,
                                     contact=contact)
     
-    # %% Specify time frame for data conversion
+    #%% specify time frame for data conversion
     flight=rf
     # % Start date
     start_date =Flight_Dates[campaign][flight]  
     # % End date
     end_date = Flight_Dates[campaign][flight]
     
-    #%%Define processing steps
-    #  Set version information
-    #  Missing value
-    #       set value for missing value (pixels with no measured signal). 
-    #       This should be different from NaN, 
-    #       since NaN is used as fill value 
-    #       (pixels where no measurements were conducted)#
+    #%% define processing steps
+    #  Set version information and processing steps in config file cfg.
+    #  Missing value, set value for missing value (pixels with no measured signal). 
+    #  This should be different from NaN, since NaN is used as fill value 
+    #  (pixels where no measurements were conducted)#
     #  Set threshold for altitude to discard radiometer data
     #  Set threshold for roll angle to discard radiometer data
-    
     cfg.add_entries_to_config_object(processing_cfg_name,
                             {"t1":start_date,"t2":end_date,
                              "date":start_date,"flight_date_used":start_date,
@@ -158,11 +151,12 @@ def main(campaign_name,rf,
                              "fill_value": np.nan,
                              "altitude_threshold":4800,
                              "roll_threshold":5})
-     #%% Define instruments to unify
+    
+    #%% define instruments to unify
     cfg.add_entries_to_config_object(processing_cfg_name,
                         {"instruments_to_unify":instruments_to_unify})
     
-    #%% Define masking criteria when adding radar mask
+    #%% specify processing steps (masking criteria,calibration)
     cfg.add_entries_to_config_object(processing_cfg_name,
                                      {"land_mask":1,
                                       "noise_mask":1,
@@ -170,11 +164,11 @@ def main(campaign_name,rf,
                                       "surface_mask":1,
                                       "seasurface_mask":1,
                                       "num_RangeGates_for_sfc":4})
+    
     cfg.add_entries_to_config_object(processing_cfg_name,
                                      {"calibrate_radiometer":False, # 1.x
                                       "calibrate_radar":True})     # 1.x
     
-    #%%
     processing_config_file=cfg.load_config_file(processing_cfg_name)
     
     processing_config_file["Input"]["data_path"]=\
@@ -183,13 +177,10 @@ def main(campaign_name,rf,
     processing_config_file["Input"]["device_data_path"]=\
                                 processing_config_file["Input"][\
                                     "data_path"]+campaign+"/"
-    
+                                    
     prcs_cfg_dict=dict(processing_config_file["Input"])    
-    
-    #%% Relevant flight dates
     #   Specify the relevant flight dates for the period of start and end date
     #   given above
-    
     Campaign_Time_cls=campaign_time.Campaign_Time(campaign,start_date)
     flightdates_use = Campaign_Time_cls.specify_dates_to_use(prcs_cfg_dict);
     
@@ -199,9 +190,8 @@ def main(campaign_name,rf,
     prcs_cfg_dict["Flight_Dates_used"]=flightdates_use
     
     # % Check structure of folders for data files
-    #checkfolderstructure(getPathPrefix, flightdates_use)
-
-    #%% Raw Data Plotting
+    #still missing, will be based on checkfolderstructure(getPathPrefix,flightdates_use)
+    #%% raw data plotting
     from measurement_instruments_ql import HALO_Devices, RADAR, HAMP
     date=start_date#flightdates_use.values[0]
     
@@ -231,7 +221,7 @@ def main(campaign_name,rf,
         #Radar_Quicklook.plot_radar_clutter_comparison(clutter_removal_version="0.2")
         #Radar_Quicklook.plot_single_radar_cfad(raw_radar_reflectivity)
        
-    # %% Processing
+    #%% processing
     print("=========================== Processing ===============================")
     if "radar" in instruments_to_unify:
             if performance.str2bool(prcs_cfg_dict["correct_attitude"]):
@@ -271,24 +261,25 @@ def main(campaign_name,rf,
 
 if __name__=="__main__":
    campaign="HALO_AC3"
-   research_flights_to_process=["RF01",
-                                "RF02",
-                                "RF03",
-                                "RF04",
-                                "RF05",
-                                "RF06",
-                                "RF07",
-                                "RF08",#,
-                                "RF09",
-                                "RF10",#
-                                "RF11",
-                                "RF12",
-                                "RF13",
-                                "RF14",
-                                "RF15",
-                                "RF16",
-                                "RF17",
-                                "RF18"
+   research_flights_to_process=[
+                               "RF01",
+                                #"RF02",
+                                #"RF03",
+                                #"RF04",
+                                #"RF05",
+                                #"RF06",
+                                #"RF07",
+                                #"RF08",#,
+                                #"RF09",
+                                #"RF10",#
+                                #"RF11",
+                                #"RF12",
+                                #"RF13",
+                                #"RF14",
+                                #"RF15",
+                                #"RF16",
+                                #"RF17",
+                                #"RF18"
                                 ]
    
    for research_flight in research_flights_to_process:
