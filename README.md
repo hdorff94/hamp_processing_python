@@ -10,12 +10,12 @@ In addition, it contains the Ka-Band radar, as shown analogously for RF04, below
 ## Execution
 The processing can be either executed with the python routine 
 ```python run_hamp_processing.py ``` or, alternatively with interactively showing quicklooks of raw measurements and steps of processed data, using the jupyter notebook ```python run_hamp_processing_notebook.ipnyb ```.  
-In ```python run_hamp_processing.main() ```, you execute you can run the processing in the konsole, but be aware that processing steps are configurated in ```main()```. The processing primarily access the processing classes located in 
+In ```python run_hamp_processing.main() ```, you can run the processing in the konsole, but be aware that processing steps are configurated in ```main()```. The processing primarily access the processing classes located in 
 the folder * [src](https://github.com/hdorff94/hamp_processing_python/tree/main/src)
 # Processing versions
 In ```python run_hamp_processing.main() ``` you define the campaign flights to process and configurate the processing levels that are specified by a version nummer.
 Version: 1.0 --> apply nadir perspective: rotation of radar range gates (vertical axis) regarding the given flight attitude onto unified vertical grid. 
-Version: 1.x --> additional process steps such as gap filling, outlier removal, side lobe removal, surface mask. All processing steps can be switched off/on, and the version number should be modified correspondingly. (It is planned to predefine the switches by the version number, so that only the number is required as input parameter, so far both have to be set individually).
+Version: 1.x --> additional process steps such as gap filling, clutter and outlier removal, side lobe removal, surface mask. All processing steps can be switched off/on, and the version number should be modified correspondingly. (It is planned to predefine the switches by the version number, so that only the version number is required as input parameter before running the processing. So far, both have to be set individually).
 Version: 2.x --> should be used for the post-calibrated data. This, however, requires additional information (calibration offsets) to be applied to the data. The offsets are derived externally and after the campaign. Version 2.x is thus not feasible for quick performance during the campaign.
 # Processed data
 Exemplarly shown for RF04.
