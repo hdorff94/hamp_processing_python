@@ -10,7 +10,8 @@ In addition, it contains the Ka-Band radar, as shown analogously for RF04, below
 ## Execution
 The processing can be either executed with the python routine 
 ```python run_hamp_processing.py ``` or, alternatively with interactively showing quicklooks of raw measurements and steps of processed data, using the jupyter notebook ```python run_hamp_processing_notebook.ipnyb ```.  
-In ```python run_hamp_processing.main() ```, you define the 
+In ```python run_hamp_processing.main() ```, you execute you can run the processing in the konsole, but be aware that processing steps are configurated in ```main()```. The processing primarily access the processing classes located in 
+the folder * [src](https://github.com/hdorff94/hamp_processing_python/tree/main/src)
 # Processing versions
 In ```python run_hamp_processing.main() ``` you define the campaign flights to process and configurate the processing levels that are specified by a version nummer.
 Version: 1.0 --> apply nadir perspective: rotation of radar range gates (vertical axis) regarding the given flight attitude onto unified vertical grid. 
