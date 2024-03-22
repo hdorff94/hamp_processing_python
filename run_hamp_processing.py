@@ -7,8 +7,8 @@ Created on Fri Jan 29 08:09:31 2021
 @author: u300737
 """
 def main(campaign_name,rf,
-         instruments_to_unify=["bahamas",
-                               #"radar",
+         instruments_to_unify=[#"bahamas",
+                               "radar",
                                #"radiometer",
                                #"dropsondes", 
                                ] # default bahamas, dropsondes, radar, radiometer.
@@ -129,18 +129,19 @@ def main(campaign_name,rf,
     cfg.add_entries_to_config_object(processing_cfg_name,
                             {"t1":start_date,"t2":end_date,
                              "date":start_date,"flight_date_used":start_date,
-                             "unify_Grid":True,               #0.1 default True
-                             "correct_attitude":True,         #0.1 default False
+                             "correct_attitude":False,         #0.1 default False
                                                               # as otherwise it
                                                               # is recalculated 
                                                               # every time 
                                                               # although already
                                                               # existent
-                             "fill_gaps":True,                # 0.2
-                             "remove_clutter":True,           # 0.3 default True
-                             "remove_side_lobes":True,        # 0.4 default True
-                             "remove_radiometer_errors":True, # default True
-                             "add_radarmask":True,            # 0.5 default True
+                             "unify_Grid":True,               #0.2 default True
+                             
+                             "fill_gaps":True,                # 0.3
+                             "remove_clutter":True,           # 0.4 default True
+                             "remove_side_lobes":True,        # 0.5 default True
+                             "remove_radiometer_errors":False, # default True
+                             "add_radarmask":True,            # 0.6 default True
                              "add_radar_mask_values":True,    # if false mask 
                                                                        # is not added to the data
                                       
@@ -167,7 +168,7 @@ def main(campaign_name,rf,
     
     cfg.add_entries_to_config_object(processing_cfg_name,
                                      {"calibrate_radiometer":False, # 1.x
-                                      "calibrate_radar":True})     # 1.x
+                                      "calibrate_radar":False})     # 1.x
     
     processing_config_file=cfg.load_config_file(processing_cfg_name)
     

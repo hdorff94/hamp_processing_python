@@ -513,7 +513,7 @@ class Radar_Processing():
         if Performance.str2bool(self.cfg_dict["remove_clutter"]):
             ds=self.remove_clutter(ds)
         if Performance.str2bool(self.cfg_dict["add_radar_mask_values"]):
-            radar_vars=['dBZg', 'Zg', 'LDRg', 'RMSg', 'VELg', 'SNRg']
+            radar_vars=['dBZg', 'Zg', 'LDRg']# 'RMSg', 'VELg', 'SNRg']
             for var in radar_vars:
                 ds[var]=ds[var].where(ds["radar_flag"].isnull(), drop=True)
                 #xr.where(ds["radar_flag"]!=-0.1,ds[var],np.nan)

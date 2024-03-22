@@ -244,7 +244,6 @@ class Radiometer_Quicklook(Quicklook_Plotter):
         self.flight_tb_offset_coeff_ds=HAMP_cls.flight_tb_offset_coeff_ds.copy()
         
         calib_coeff_fig=plt.figure(figsize=(14,8))
-        #%% Slope plots (upper row)
         ax1=calib_coeff_fig.add_subplot(241)
         ax1.scatter(self.flight_tb_slope_coeff_ds["frequency"][0:7].astype(str),
                  self.flight_tb_slope_coeff_ds.values[0:7].astype(float),
@@ -684,7 +683,7 @@ class Radiometer_Quicklook(Quicklook_Plotter):
         #fig.savefig(fig_file,dpi=300,bbox_inches="tight")
         #print(self.instrument," Quicklook saved as:",fig_file)
         
-    def plot_radiometer_TBs(self,date,raw_measurements=True,hourly=np.nan):
+    def plot_radiometer_TBs(self,raw_measurements=True,hourly=np.nan):
         matplotlib.rcParams.update({"font.size":18})
         print("Plotting ...")
         if raw_measurements:
@@ -702,7 +701,6 @@ class Radiometer_Quicklook(Quicklook_Plotter):
             Tb_KV_df=Tb_df.loc[:,["22.24","23.04","23.84","25.44","26.24",
                                   "27.84","31.4","50.3","51.76","52.8",
                                   "53.75","54.94","56.66","58.0"]]
-            print("TBKVDF:",Tb_KV_df.columns)
             Tb_183_df=Tb_df.loc[:,["183.91","184.81","185.81",
                                     "186.81","188.31","190.81"]]
             Tb_11990_df=Tb_df.loc[:,["90.0","120.15","121.05","122.95","127.25"]]
@@ -797,10 +795,11 @@ class Radiometer_Quicklook(Quicklook_Plotter):
         sns.despine(offset=5)
         if np.isnan(hourly):
             fig_name="HAMP_Tb_"+[*self.cfg_dict["Flight_Dates_used"].keys()][0]+\
-                    "_"+str(date)+".png"        
+                "_"+str([*self.cfg_dict["Flight_Dates_used"].values][0])+".png"        
         else:
             fig_name="HAMP_Tb_"+[*self.cfg_dict["Flight_Dates_used"].keys()][0]+\
-                    "_"+str(date)+"_"+str(hourly)+"00.png"        
+                "_"+[*self.cfg_dict["Flight_Dates_used"].keys()][0]+\
+                    "_"+str(hourly)+"00.png"        
             
         if raw_measurements:
             plt.suptitle("Raw Measurements")
@@ -808,7 +807,8 @@ class Radiometer_Quicklook(Quicklook_Plotter):
         #if np.isnan(hourly):
         #    axs[1,1].xaxis.set_major_locator(mdates.MinuteLocator(byminute=[0]))        
         #else:
-        #    axs[1,1].xaxis.set_major_locator(mdates.MinuteLocator(byminute=[0,15,30,45]))
+        #    axs[1,1].xaxis.set_major_locator(
+                #mdates.MinuteLocator(byminute=[0,15,30,45]))
         #axs[1,1].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))        
         #axs[1,1].set_xlabel('Time (UTC)')
         #sns.despine(offset=10)
@@ -1247,10 +1247,10 @@ class Radar_Quicklook(Quicklook_Plotter):
         # via plotting
         from matplotlib import colors
         if show_masks:
-            fig,axs=plt.subplots(4,1,figsize=(12,20),sharex=True)
-        else:
             fig,axs=plt.subplots(3,1,figsize=(12,20),sharex=True)
-        y=np.array(self.processed_radar["height"][:])#/1000
+        else:
+            fig,axs=plt.subplots(2,1,figsize=(12,18),sharex=True)
+        y=np.array(self.processed_radar_ds["height"][:])#/1000
         if not is_calibrated:
             print("Plotting HAMP Cloud Radar (processed)")
         else:
@@ -1259,9 +1259,11 @@ class Radar_Quicklook(Quicklook_Plotter):
         #######################################################################
         ### Processed radar
         # Radar reflectivity
+        vars_to_fill=["dBZg","LDRg","VELg"]
+        if show_masks:
+            vars_to_fill.append("radar_flag")
         processed_radar=replace_fill_and_missing_values_to_nan(
-                                self.processed_radar,["dBZg","LDRg","VELg",
-                                                      "radar_flag"])
+                                self.processed_radar_ds,[vars_to_fill])
         
         if not np.isnan(hourly):
             processed_radar["dBZg"]=processed_radar["dBZg"][\
@@ -1279,8 +1281,9 @@ class Radar_Quicklook(Quicklook_Plotter):
         print("dBZ plotted")
         #Plotting
         C1=axs[0].pcolor(time,y,
-                             np.array(processed_radar["dBZg"][:]).T,
-                             vmin=-30,vmax=30,shading='nearest')
+                np.array(processed_radar["dBZg"][:]).T,
+                vmin=-30,vmax=30,shading='nearest',
+                cmap=self.dbz_colorbar)
         cax1=fig.add_axes([0.9, 0.725, 0.01, 0.15])
 
         cb = plt.colorbar(C1,cax=cax1,
@@ -1313,14 +1316,13 @@ class Radar_Quicklook(Quicklook_Plotter):
             axs[1].xaxis.set_major_locator(mdates.MinuteLocator(byminute=[0,15,30,45]))
         axs[1].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))        
         sns.despine(offset=10)
-        cax2=fig.add_axes([0.9, 0.525, 0.01, 0.15])
+        cax2=fig.add_axes([0.9, 0.275, 0.01, 0.15])
 
         cb = plt.colorbar(C2,cax=cax2,
                           orientation='vertical',
                           extend="both")
         cb.set_label('LDR (dB)')
         # Radar Doppler Velocity
-        print("Doppler vel")
         
         #C3=axs[2].pcolor(pd.DatetimeIndex(np.array(processed_radar.time[:])),
         #                 y,processed_radar["VELg"].T,
@@ -1347,41 +1349,42 @@ class Radar_Quicklook(Quicklook_Plotter):
         if show_masks:
             print("mask")
             # define colormap
-            cmap_mask = colors.ListedColormap(['green','orange','black','blue',
-                                           'magenta'])
-            bounds=[.5,1.5,2.5,3.5,4.5]
-            norm = colors.BoundaryNorm(bounds, cmap_mask.N)
-        
-            C4=axs[3].contourf(time,y,np.array(
-                            processed_radar["radar_flag"][:].T).astype(float),
-                            levels=np.arange(0.5,4.5),cmap=cmap_mask,norm=norm)
+            #cmap_mask = colors.ListedColormap(['green','orange','black','blue',
+            #                               'magenta'])
+            #bounds=[.5,1.5,2.5,3.5,4.5]
+            #norm = colors.BoundaryNorm(bounds, cmap_mask.N)
+            blue_colorbar=cm.get_cmap('Blues_r', 30)
+            blue_cb=blue_colorbar(np.linspace(0, 1, 30))
+            brown_rgb  = np.array(colors.hex2color(colors.cnames['brown'])) #-0.1 sfc
+            red_rgb    = np.array(colors.hex2color(colors.cnames['red'])) #2
+            orange_rgb = np.array(colors.hex2color(colors.cnames["orange"])) #3
+            purple_rgb = np.array(colors.hex2color(colors.cnames["purple"])) #4 
+            blue_cb[:2, :]   = [*brown_rgb,1]
+            blue_cb[-6:-4,:] = [*red_rgb,1]
+            blue_cb[-4:-2,:] = [*orange_rgb,1]
+            blue_cb[-2::,:]  = [*purple_rgb,1]
+            newcmp = ListedColormap(blue_cb)
+            radar_flag=processed_radar["radar_flag"].copy()
+            radar_flag=radar_flag.where(radar_flag!=2,other=1.2)
+            radar_flag=radar_flag.where(radar_flag!=3,other=1.3)
+            radar_flag=radar_flag.where(radar_flag!=4,other=1.4)
+            C4=axs[2].pcolor(time,y[0:100],np.array(
+                            radar_flag[:,0:100].T).astype(float),
+                            vmin=-0.1,vmax=1.4,cmap=newcmp)
             cax4=fig.add_axes([0.9, 0.125, 0.01, 0.15])
             cb4=plt.colorbar(C4,cax=cax4,orientation="vertical")
             cb4.set_label("Radar mask")
-            cb4.set_ticks([0,1,2,3,4])
-            cb4.ax.set_yticklabels(["good",
-                                "noise",
-                                "sfc",
-                                "sea",
-                                "Side\nLobes"])
+            cb4.set_ticks([-0.1,0,1,1.1,1.2,1.3,1.4])
+            #cb4.ax.set_yticklabels(["good",
+            #                    "noise",
+            #                    "sfc",
+            #                    "sea",
+            #                    "Side\nLobes"])
         
-            axs[3].set_yticks([0,2000,4000,6000,8000,10000,12000])
-            axs[3].set_ylim([0,12000])
-            axs[3].set_yticklabels(["0","2","4","6","8","10","12"])
+            axs[2].set_yticks([0,2000,4000,6000,8000,10000,12000])
+            axs[2].set_ylim([0,12000])
+            axs[2].set_yticklabels(["0","2","4","6","8","10","12"])
         
-            for label in axs[3].get_xticklabels():
-                label.set_rotation(30)
-            if np.isnan(hourly):
-                axs[3].xaxis.set_major_locator(
-                    mdates.MinuteLocator(byminute=[0]))        
-            else:
-                axs[3].xaxis.set_major_locator(
-                    mdates.MinuteLocator(byminute=[0,15,30,45]))
-                axs[3].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))        
-        
-                axs[3].set_xlabel('Time (UTC)')
-        # no mask
-        else:
             for label in axs[2].get_xticklabels():
                 label.set_rotation(30)
             if np.isnan(hourly):
@@ -1393,21 +1396,38 @@ class Radar_Quicklook(Quicklook_Plotter):
                 axs[2].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))        
         
                 axs[2].set_xlabel('Time (UTC)')
+        # no mask
+        else:
+            for label in axs[1].get_xticklabels():
+                label.set_rotation(30)
+            if np.isnan(hourly):
+                axs[1].xaxis.set_major_locator(
+                    mdates.MinuteLocator(byminute=[0]))        
+            else:
+                axs[1].xaxis.set_major_locator(
+                    mdates.MinuteLocator(byminute=[0,15,30,45]))
+                axs[1].xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))        
+        
+                axs[1].set_xlabel('Time (UTC)')
         
         sns.despine(offset=10)
         
+        for ax in axs:
+            for axis in ['bottom','left']:
+                ax.spines[axis].set_linewidth(2)
+                ax.tick_params(width=2,length=6)
         if not hasattr(self,"radar_fig_path"):
             self.specify_plot_path()
         if np.isnan(hourly):
             fig_name="processed_radar_quicklook_"+\
-                    str([*self.cfg_dict["flight_date_used"]][0])+".png"
+                    str(self.cfg_dict["flight_date_used"])+".png"
         else:
             fig_name="processed_radar_quicklook_"+\
-                    str([*self.cfg_dict["flight_date_used"]][0])+"_"+\
+                    str(self.cfg_dict["flight_date_used"])+"_"+\
                         str(hourly)+"00.png"
         if is_calibrated:
             fig_name="calibrated_"+fig_name
-        fig.savefig(self.radar_fig_path+fig_name,bbox_inches="tight",dpi=300)
+        fig.savefig(self.radar_fig_path+fig_name,bbox_inches="tight",dpi=150)
         print("Figure saved as:",self.radar_fig_path+fig_name)
     
     def unified_radar_quicklook(self,flight,plot_path, calibrated_radar=True):
@@ -1470,7 +1490,8 @@ class Radar_Quicklook(Quicklook_Plotter):
         axs[1].spines.bottom.set_visible(False)
         sns.despine(offset=10,ax=axs[0])
         # Radar LDR
-        C2=axs[2].pcolor(time,y,np.array(processed_radar["LDRg"][:].T),cmap=cmaeri.batlowK,vmin=-25, vmax=-10)        
+        C2=axs[2].pcolor(time,y,np.array(processed_radar["LDRg"][:].T),
+                         cmap=cmaeri.batlowK,vmin=-25, vmax=-10)        
         axs[2].set_yticks([0,2000,4000,6000,8000,10000,12000])
         axs[2].set_ylim([0,12000])
         axs[2].set_yticklabels(["0","2","4","6","8","10","12"])
@@ -1918,9 +1939,9 @@ class Radar_Quicklook(Quicklook_Plotter):
         #RADAR_cls.raw_radar_ds=raw_radar_ds.copy()
         
         clutter_radar=RADAR_cls.open_version_specific_processed_radar_data(
-            version="0.1")
-        clean_radar=RADAR_cls.open_version_specific_processed_radar_data(
             version="0.2")
+        clean_radar=RADAR_cls.open_version_specific_processed_radar_data(
+            version="0.3")
         
         fig,axs=plt.subplots(2,1,figsize=(18,12),sharex=True)
         y=np.array(clutter_radar["height"][:])#/1000
@@ -1936,7 +1957,7 @@ class Radar_Quicklook(Quicklook_Plotter):
         
         time=pd.DatetimeIndex(np.array(clutter_radar["dBZg"].time[:]))
         #Plotting
-        C1=axs[0].pcolormesh(time,y,
+        C1=axs[0].pcolor(time,y,
                              np.array(clutter_radar["dBZg"][:].T),
                              vmin=-30,vmax=30,cmap=self.dbz_colorbar)
         
@@ -1953,7 +1974,7 @@ class Radar_Quicklook(Quicklook_Plotter):
         axs[0].set_yticklabels(["0","2","4","6","8","10","12"])
         axs[0].set_ylabel("Altitude (km)")
         
-        C2=axs[1].pcolormesh(time,y,np.array(clean_radar["dBZg"][:].T),
+        C2=axs[1].pcolor(time,y,np.array(clean_radar["dBZg"][:].T),
                          cmap=self.dbz_colorbar,vmin=-30, vmax=30)        
         axs[1].set_yticks([0,2000,4000,6000,8000,10000,12000])
         axs[1].set_ylim([0,12000])

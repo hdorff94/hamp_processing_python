@@ -336,8 +336,8 @@ class CPGN_netCDF():
         global_attrs["processing_date"]= datetime.now().strftime(
                                             "%d/%m/%Y %H:%M:%S")
         global_attrs["authors"]="Dorff, Henning; Ewald, Florian; Hirsch, Lutz;"+\
-            "Jansen, Friedhelm; Konow, Heike; Mech, Mario; Ori, Davide;"+\
-                "Ringel, Maximilian; Walbröl, Andreas; Crewell, Susanne;"+\
+            "Jansen, Friedhelm; Konow, Heike; Mech, Mario; Ori, Davide; "+\
+                "Ringel, Maximilian; Walbröl, Andreas; Crewell, Susanne; "+\
                     "Ehrlich, André; Wendisch, Manfred; Ament, Felix"
         global_attrs["licence"]="Creative Commons Attribution NonCommercial"+\
             "ShareAlike 4.0 International (CC BY-NC-SA 4.0)"

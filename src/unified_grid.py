@@ -1169,7 +1169,8 @@ def run_unify_grid(flightdates_use,cfg_dict):
 
     # Radar
     radar_vars = ['dBZg','Zg',#'Ze','dBZe',
-                  'LDRg','RMSg','VELg','SNRg',
+                  'LDRg',
+                  'RMSg','VELg','SNRg',
                   'curveFlag'
                   ]
 

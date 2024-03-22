@@ -22,7 +22,6 @@ import xarray as xr
 import campaign_netcdf
 from  campaign_time import sdn_2_dt
 
-#%%
 def radar_mask_table():
     #radar mask for questionable data
 
@@ -115,7 +114,6 @@ def radar_mask_table():
 
     return radar_mask_dict     
 
-#%%
 def load_existing_mask(flight_date,cfg_dict,mask_type="land"):
     """
     
@@ -312,7 +310,7 @@ def make_haloLandMask(flight_dates,outfile,cfg_dict,add_sea_ice_mask=False,
     print("Land mask saved as:", outpath+landmask_file)    
 
 
-#%%        
+       
 def make_radar_noise_calibration_mask(flightdates,outfile,
                                       mask_type,
                                       cfg_dict):
@@ -373,7 +371,7 @@ def make_radar_noise_calibration_mask(flightdates,outfile,
                            index=True)
         print(outvar,"saved as:", outpath+mask_file)    
 
-#%%        
+        
 def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
     """
     
@@ -485,7 +483,7 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
             # Check if landmask is true (=-0.1) 
             # and at least one measurement in radar profile
             # and profile's reflectivity maximum is larger 30 dBZ 
-            # %%%%%than average zMaximum - 1 standard deviation
+            # than average zMaximum - 1 standard deviation
             # !change this value after radar data has been recalculated!
             if landmask_df[mask_arg].iloc[j]==mask_value and not \
                 ind_no_dbz_profile.iloc[j] and \
@@ -568,7 +566,7 @@ def make_radar_surface_mask(flightdates,outfile,cfg_dict,show_quicklook=False):
         print("Surface Mask saved as:", outpath+mask_file)    
     return None
 
-#%%
+
 def make_radar_sea_surface_mask(flightdates, outfile, cfg_dict):
     
     ####
@@ -652,7 +650,7 @@ def make_radar_sea_surface_mask(flightdates, outfile, cfg_dict):
     
     return None
     
-#%%
+
 def make_radar_info_mask(flightdates,outfile,cfg_dict):
     
     mask_path =  cfg_dict["radar_mask_path"]#+'Auxiliary/Masks/'    
@@ -795,7 +793,7 @@ def make_radar_info_mask(flightdates,outfile,cfg_dict):
                            index=True)
         print("Radar Info Mask saved as: ",mask_path+fname)
         
-#%%
+
 def run_make_masks(flightdates, cfg_dict):
     """
     Run script to call functions for radar data masks

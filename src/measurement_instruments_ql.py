@@ -955,11 +955,17 @@ class HAMP(HALO_Devices):
                                  newest_version=True):
        import campaign_netcdf
        nc_path=self.cfg_dict["device_data_path"]+"all_nc/"
-       #sys.exit()
+       date=self.cfg_dict["flight_date_used"]
        if newest_version:       
           data_file=campaign_netcdf.CPGN_netCDF.identify_newest_version(
-              nc_path,device="radiometer",date=self.cfg_dict["flight_date_used"],
+              nc_path,device="radiometer",date=date,
               for_calibrated_file=open_calibrated)
+       else:
+           data_file=nc_path+"HALO_"+self.cfg_dict["campaign"]+\
+               "_"+"radiometer"+"_unified_"+self.cfg_dict["flight"]+"_"+date+\
+                   "_v"+str(self.cfg_dict["version"])+"."+\
+                       str(self.cfg_dict["subversion"])+".nc"
+       print(data_file)
        if not open_calibrated:
            self.processed_hamp_ds=xr.open_dataset(data_file)
        else:

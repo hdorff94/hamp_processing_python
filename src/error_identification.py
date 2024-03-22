@@ -974,7 +974,7 @@ def main(function_configurated=False,
         campaign="EUREC4A"
         working_path=init_paths.main()
         actual_working_path=os.getcwd()
-        airborne_data_importer_path=working_path+"/Work/GIT_Repository/"+\
+        airborne_data_importer_path=working_path+"/../../Work/GIT_Repository/"+\
                                 "hamp_processing_py/"+\
                                     "hamp_processing_python/" # This is also the major path where your data will be stored
     
