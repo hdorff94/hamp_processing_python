@@ -795,7 +795,7 @@ class Radiometer_Quicklook(Quicklook_Plotter):
         sns.despine(offset=5)
         if np.isnan(hourly):
             fig_name="HAMP_Tb_"+[*self.cfg_dict["Flight_Dates_used"].keys()][0]+\
-                "_"+str([*self.cfg_dict["Flight_Dates_used"].values][0])+".png"        
+                "_"+str([*self.cfg_dict["Flight_Dates_used"].values()][0])+".png"        
         else:
             fig_name="HAMP_Tb_"+[*self.cfg_dict["Flight_Dates_used"].keys()][0]+\
                 "_"+[*self.cfg_dict["Flight_Dates_used"].keys()][0]+\

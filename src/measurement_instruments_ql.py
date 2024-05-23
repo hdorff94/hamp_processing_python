@@ -151,7 +151,6 @@ class HALO_Devices():
 
         return 2 * R * np.arcsin(np.sqrt(d))    
 #-----------------------------------------------------------------------------#
-#%% BACARDI
 class BACARDI(HALO_Devices):
     def __init__(self,HALO_Devices_cls):
         self.cfg_dict=HALO_Devices_cls.cfg_dict
@@ -220,7 +219,6 @@ class BACARDI(HALO_Devices):
             except:
                 self.open_unprocessed_quicklook_data()
 #-----------------------------------------------------------------------------#
-#%% BAHAMAS
 class BAHAMAS(HALO_Devices):
     def __init__(self,HALO_Devices_cls):
         # changed after NARVAL-I! use only for NARVAL-II and onward. For
@@ -622,7 +620,6 @@ class BAHAMAS(HALO_Devices):
         bah_df["sea_ice"]=sea_ice_mask.values    
         return bah_df
 #-----------------------------------------------------------------------------#
-#%% Dropsondes
 class Dropsondes(HALO_Devices):
     def __init__(self,HALO_Devices_cls):
         #import metpy 
@@ -771,7 +768,6 @@ class Dropsondes(HALO_Devices):
             
         
 #-----------------------------------------------------------------------------#
-#%% HAMP
 class HAMP(HALO_Devices):
     def __init__(self, HALO_Devices_cls,
                  version='raw', **kwargs):
@@ -990,7 +986,6 @@ class HAMP(HALO_Devices):
          
     
 #-----------------------------------------------------------------------------#
-#%% Radar         
 class RADAR(HALO_Devices):
     def __init__(self,HALO_Devices_cls):
         #super(HALO_Radar,self).__init__()
@@ -1121,7 +1116,8 @@ class RADAR(HALO_Devices):
             processed_ds=xr.open_dataset(default_data_file)
             
         return processed_ds
-    #%% Time stamp adjustments ------------
+    #-------------------------------------------------------------------------#
+    # Time stamp adjustments 
     def adapt_time_stamp(self,ds):
         if not np.issubdtype(ds.time.values.dtype,np.datetime64) or\
             not str(ds.time.values.dtype).startswith('datetime64[ns]'):
@@ -1152,7 +1148,7 @@ class RADAR(HALO_Devices):
             pass
         
         return ds
-    #%% Calc logarithmic values for Zg and LDR
+    
     def calc_dbz_from_z(self,raw_measurement=True):
         if raw_measurement:
             ds=self.raw_radar_ds
@@ -1207,7 +1203,8 @@ class RADAR(HALO_Devices):
             self.processed_radar_ds["LDRg"]=self.processed_radar_ds["LDRg"].\
                         fillna(float(self.cfg_dict["missing_value"]))
     
-    #%% Calibration
+    #-------------------------------------------------------------------------#
+    # Calibration
     def get_calibration(self):
         flight=self.cfg_dict["Flight_Dates_used"].index[0]
         ## --> for specific campaigns
@@ -1236,7 +1233,51 @@ class RADAR(HALO_Devices):
               " according to Ewald (2019)")
         print("This offset has to be added to Zg by:",
               "Zg_calib=Zg_raw*10**(0.1*self.dB_offset)")
-    #%% Melting layer detection and precipitation phase
+    def get_gaseous_attenuation(self):
+        flight=self.cfg_dict["flight"][0]
+        aux_path=self.cfg_dict["device_data_path"]+"/auxiliary/"
+        print(aux_path)    
+        gas_file=glob.glob(aux_path+"*"+flight+"*")
+        self.gas_ds=xr.open_dataset(gas_file[0])
+    
+    def correct_for_gaseous_attenuation(self):
+        self.get_gaseous_attenuation()
+        att_coeffs=self.gas_ds["Gaseous_twowayatt"]
+        att_coeffs=att_coeffs.sel({"alt":slice(12000,0)})
+        att_coeffs=att_coeffs.sortby("alt")
+        # Gaseous attenuation has to be interpolated onto unified dataset
+        att_coeffs_df=pd.DataFrame(
+            data=np.array(att_coeffs.values[:]),
+            index=pd.DatetimeIndex(att_coeffs.time[:]),
+            columns=np.array(att_coeffs["alt"].values[:]))
+        
+        # Time interpolation
+        att_coeffs_df=att_coeffs_df.iloc[1::,:].resample("1s").mean()
+        # Gaseous attenuation is given Z, not dBZ
+        att_coeffs_dbz=pd.DataFrame(
+            data=np.array(10*np.emath.log10(att_coeffs_df.values[:])),
+            index=att_coeffs_df.index,
+            columns=np.array(att_coeffs_df.columns))
+        # Spatial linear interpolation onto unified height grid
+        alt_values=att_coeffs_dbz.columns #old heights roughly (15 m)
+        new_alt_values=self.radar_ds["height"].values # unified 30 m resolution
+        #
+        regrid_att_coeffs=np.array(
+            [np.interp(new_alt_values, alt_values, att_coeffs_dbz.iloc[i,:])\
+                            for i in range(att_coeffs_dbz.shape[0])])
+        # make dataframe for later xr.DataArray out of it
+        regrid_att_coeffs=pd.DataFrame(data=regrid_att_coeffs,
+                              index=att_coeffs_df.index,columns=new_alt_values)
+        #alt_values=att_coeffs_dbz.columns
+
+
+        self.radar_ds["Gas_Attenuation"]=xr.DataArray(
+                        data=regrid_att_coeffs,dims=self.radar_ds.dims)
+        self.radar_ds["dBZg_old"]=self.radar_ds["dBZg"].copy()
+        self.radar_ds["dBZg"]=self.radar_ds["dBZg_old"]+\
+            self.radar_ds["Gas_Attenuation"]
+        print("Radar reflectivty dBZg corrected for gaseous attenuation")
+    # Melting layer detection and precipitation phase
     @staticmethod
     def find_melting_layer(radar_dict,vertical_value_to_use="max"):
         """
@@ -1405,7 +1446,8 @@ class RADAR(HALO_Devices):
                                         index=zg_series_dict["zg"].index,
                                columns=["r_norris","r_palmer","r_chandra",
                                        "s_schoger","s_matrosov","s_heymsfield",
-                                       "mean_snow","mean_rain","surface","precip_phase"])
+                                       "mean_snow","mean_rain","mean_unc",
+                                       "surface","precip_phase"])
         default_rain_rate=RADAR.get_rain_rate(zg_series_dict["zg"])
         if z_for_snow=="Z_e":
             z_snow=zg_series_dict["ze"]
@@ -1423,6 +1465,20 @@ class RADAR(HALO_Devices):
         precipitation_rate["r_palmer"].loc[bb_mask==2]=default_rain_rate["palmer"]
         precipitation_rate["r_chandra"].loc[bb_mask==2]=default_rain_rate["chandra"]
         precipitation_rate["mean_rain"].loc[bb_mask==2]=default_rain_rate["mean_rain"]
+        #---------------------------------------------------------------------#
+        # for uncertain tak all
+        precipitation_rate["mean_mixed"]=0.0
+        precipitation_rate["max_mixed"]=0.0
+        precipitation_rate["min_mixed"]=0.0
+        #Snow rate
+        unc_rate_mean_snow=default_snow_rate.loc[bb_mask==3]["mean_snow"]
+        #Rain rate
+        unc_rate_mean_rain=default_rain_rate.loc[bb_mask==3]["mean_rain"]
+        precipitation_rate["mean_mixed"].loc[bb_mask==3]=\
+            (unc_rate_mean_snow+unc_rate_mean_rain)/2
+        precipitation_rate["max_mixed"].loc[bb_mask==3]=default_snow_rate["heymsfield"]
+        precipitation_rate["min_mixed"].loc[bb_mask==3]=default_rain_rate["norris"]
+        #---------------------------------------------------------------------#
         precipitation_rate["surface"]=surface_mask.values
         precipitation_rate["precip_phase"].loc[bb_mask==1]="snow"
         precipitation_rate["precip_phase"].loc[bb_mask==2]="rain"
@@ -1438,13 +1494,13 @@ class RADAR(HALO_Devices):
         strong_radar["Zg"]=10**(1/10*strong_radar["dBZg"])
         strong_z_series_dict={}
         strong_z_series_dict["zg"]=pd.DataFrame(strong_radar["Zg"][:,4],
-                                                index=pd.DatetimeIndex(np.array(strong_radar["Zg"].time[:])))
+                index=pd.DatetimeIndex(np.array(strong_radar["Zg"].time[:])))
         #calculate precipitation rate for stronger z
-        strong_precip_rate=RADAR.take_correct_precipitation_rates(strong_z_series_dict,surface_mask,
-                                                                      precip_type_series,
-                                                    z_for_snow="Zg")
+        strong_precip_rate=RADAR.take_correct_precipitation_rates(
+            strong_z_series_dict,surface_mask,precip_type_series,z_for_snow="Zg")
         strong_precip_rate=strong_precip_rate.fillna(0)
-        strong_precip_rate["rate"]=strong_precip_rate["mean_snow"]+strong_precip_rate["mean_rain"]
+        strong_precip_rate["rate"]=strong_precip_rate["mean_snow"]+\
+            strong_precip_rate["mean_rain"]
         return strong_precip_rate
     
     @staticmethod
@@ -1508,7 +1564,6 @@ class RADAR(HALO_Devices):
         # Finished, return histogram    
         return cfad_hist_dict
 #-----------------------------------------------------------------------------#
-#%% SMART
 class SMART(HALO_Devices):
     def __init__(self,HALO_Devices_cls):
         self.cfg_dict=HALO_Devices_cls.cfg_dict
@@ -1535,7 +1590,6 @@ class SMART(HALO_Devices):
         self.ds=xr.open_dataset(self.irs_file)
         
 #-----------------------------------------------------------------------------#
-#%% Sea ice data
 class SEA_ICE():
     def __init__(self,cfg_dict):
         self.cfg_dict=cfg_dict
@@ -1564,7 +1618,6 @@ class SEA_ICE():
                 
                 
 
-#%% POLAR Aircraft
 class POLAR_Devices():
     def __init__(self,cfg_dict,
                  major_path=""):

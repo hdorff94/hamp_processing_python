@@ -19,12 +19,6 @@ import performance
 performance=performance.performance()
 
 ###############################################################################
-#%% Standard functions
-#def get_timeidx():
-#    pass
-#def get_heightidx():
-#    pass
-
 def transfer_data(uni_data,instr_var_data,height):
     """
     Transfer the data and insert it onto the unified grid level
