@@ -1234,11 +1234,14 @@ class RADAR(HALO_Devices):
         print("This offset has to be added to Zg by:",
               "Zg_calib=Zg_raw*10**(0.1*self.dB_offset)")
     def get_gaseous_attenuation(self):
-        flight=self.cfg_dict["flight"][0]
+        flight=self.cfg_dict["flight"]
         aux_path=self.cfg_dict["device_data_path"]+"/auxiliary/"
-        print(aux_path)    
-        gas_file=glob.glob(aux_path+"*"+flight+"*")
-        self.gas_ds=xr.open_dataset(gas_file[0])
+        try:
+            gas_file=glob.glob(aux_path+"*"+flight+"*.nc")
+        except:
+            gas_file=glob.glob(aux_path+"*"+flight[0]+"*.nc")
+        self.gas_ds=xr.open_dataset(gas_file[0],
+                                    engine="netcdf4")
     
     def correct_for_gaseous_attenuation(self):
         self.get_gaseous_attenuation()
@@ -1262,21 +1265,29 @@ class RADAR(HALO_Devices):
         alt_values=att_coeffs_dbz.columns #old heights roughly (15 m)
         new_alt_values=self.radar_ds["height"].values # unified 30 m resolution
         #
+        regrid_att_coeffs_z=np.array(
+            [np.interp(new_alt_values, alt_values, att_coeffs_df.iloc[i,:])\
+             for i in range(att_coeffs_df.shape[0])])
         regrid_att_coeffs=np.array(
             [np.interp(new_alt_values, alt_values, att_coeffs_dbz.iloc[i,:])\
                             for i in range(att_coeffs_dbz.shape[0])])
         # make dataframe for later xr.DataArray out of it
         regrid_att_coeffs=pd.DataFrame(data=regrid_att_coeffs,
                               index=att_coeffs_df.index,columns=new_alt_values)
+        regrid_att_coeffs_z=pd.DataFrame(data=regrid_att_coeffs_z,
+                index=att_coeffs_df.index,columns=new_alt_values)
         #alt_values=att_coeffs_dbz.columns
 
 
         self.radar_ds["Gas_Attenuation"]=xr.DataArray(
-                        data=regrid_att_coeffs,dims=self.radar_ds.dims)
+                        data=regrid_att_coeffs_z,dims=self.radar_ds.dims)
         self.radar_ds["dBZg_old"]=self.radar_ds["dBZg"].copy()
         self.radar_ds["dBZg"]=self.radar_ds["dBZg_old"]+\
             self.radar_ds["Gas_Attenuation"]
         print("Radar reflectivty dBZg corrected for gaseous attenuation")
+        self.radar_ds["Zg_old"]=self.radar_ds["Zg"].copy()
+        self.radar_ds["Zg"]=self.radar_ds["Gas_Attenuation"]*self.radar_ds["Zg"]
+        print("Radar reflectivity Zg corrected for gaseous attenuation")
     # Melting layer detection and precipitation phase
     @staticmethod
     def find_melting_layer(radar_dict,vertical_value_to_use="max"):
@@ -1486,11 +1497,12 @@ class RADAR(HALO_Devices):
         precipitation_rate["precip_phase"].loc[bb_mask==-1]="land"
         return precipitation_rate    
     @staticmethod
-    def mimic_attenuation(processed_radar,surface_mask,precip_type_series):
+    def mimic_attenuation(processed_radar,surface_mask,precip_type_series,
+                          attenuation_value=4):
         # Create higher radar reflectivities 
         strong_radar=processed_radar.copy()
         # Add 4 dBZ that can be expected due to radar attentuation (gaseous and hydrometeor)
-        strong_radar["dBZg"]=strong_radar["dBZg"]+4 
+        strong_radar["dBZg"]=strong_radar["dBZg"]+attenuation_value 
         strong_radar["Zg"]=10**(1/10*strong_radar["dBZg"])
         strong_z_series_dict={}
         strong_z_series_dict["zg"]=pd.DataFrame(strong_radar["Zg"][:,4],
@@ -1500,7 +1512,7 @@ class RADAR(HALO_Devices):
             strong_z_series_dict,surface_mask,precip_type_series,z_for_snow="Zg")
         strong_precip_rate=strong_precip_rate.fillna(0)
         strong_precip_rate["rate"]=strong_precip_rate["mean_snow"]+\
-            strong_precip_rate["mean_rain"]
+            strong_precip_rate["mean_rain"]+strong_precip_rate["mean_mixed"]
         return strong_precip_rate
     
     @staticmethod
