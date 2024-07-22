@@ -1566,7 +1566,7 @@ class RADAR(HALO_Devices):
             height_hist=pd.value_counts(bin_groups).sort_index()        
             
             #Assign counted bins to histogram dataframe
-            cfad_hist.iloc[i,:]=height_hist.values/(cfad_hist.shape[0]*cfad_hist.shape[1])
+            cfad_hist.iloc[i,:]=height_hist.values/df.shape[0]#(cfad_hist.shape[0]*cfad_hist.shape[1])
             cfad_hist_absolute.iloc[i,:]=height_hist.values
             updt(len(df.columns),i)
             i+=1
