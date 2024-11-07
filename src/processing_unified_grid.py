@@ -442,10 +442,10 @@ class Radiometer_Processing():
         except:
             calib_coeff_da=calib_coeff_da.loc[{"freq":ds.uniRadiometer_freq}]
             
-        ds=ds.sortby("uniRadiometer_freq")
+        #ds=ds.sortby("uniRadiometer_freq")
         ds_new=ds.assign(TB=ds["TB"]*calib_coeff_da["slope"].values+\
                          calib_coeff_da["offset"].values)
-        
+        ds_new=ds_new.sortby("uniRadiometer_freq")
         print("HAMP TB calibration done!")
         return ds_new
                   

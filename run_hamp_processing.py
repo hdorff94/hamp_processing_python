@@ -80,7 +80,7 @@ def main(campaign_name,rf,
                               "RF14":"20220407",
                               "RF15":"20220408",
                               "RF16":"20220410",
-                              ##"RF17":"20220411",
+                              "RF17":"20220411",
                               "RF18":"20220412"
                               }
         
@@ -140,13 +140,13 @@ def main(campaign_name,rf,
                              "fill_gaps":True,                # 0.3
                              "remove_clutter":True,           # 0.4 default True
                              "remove_side_lobes":True,        # 0.5 default True
-                             "remove_radiometer_errors":False, # default True
+                             "remove_radiometer_errors":True, # default True
                              "add_radarmask":True,            # 0.6 default True
                              "add_radar_mask_values":True,    # if false mask 
                                                                        # is not added to the data
                                       
-                             "version":0,
-                             "subversion":6,
+                             "version":2,
+                             "subversion":7,
                              "quicklooks":False,               # default True
                              "missing_value":-888,
                              "fill_value": np.nan,
@@ -167,8 +167,8 @@ def main(campaign_name,rf,
                                       "num_RangeGates_for_sfc":4})
     
     cfg.add_entries_to_config_object(processing_cfg_name,
-                                     {"calibrate_radiometer":False, # 1.x
-                                      "calibrate_radar":False})     # 1.x
+                                     {"calibrate_radiometer":True, # 1.x
+                                      "calibrate_radar":True})     # 1.x
     
     processing_config_file=cfg.load_config_file(processing_cfg_name)
     
@@ -264,23 +264,23 @@ if __name__=="__main__":
    campaign="HALO_AC3"
    research_flights_to_process=[
                                "RF01",
-                                #"RF02",
-                                #"RF03",
-                                #"RF04",
-                                #"RF05",
-                                #"RF06",
-                                #"RF07",
-                                #"RF08",#,
-                                #"RF09",
-                                #"RF10",#
-                                #"RF11",
-                                #"RF12",
-                                #"RF13",
-                                #"RF14",
-                                #"RF15",
-                                #"RF16",
-                                #"RF17",
-                                #"RF18"
+                               #"RF02",
+                               #"RF03",
+                               #"RF04",
+                               #"RF05",
+                               #"RF06",
+                               #"RF07",
+                               #"RF08",#,
+                               #"RF09",
+                               #"RF10",#
+                               #"RF11",
+                               #"RF12",
+                               #"RF13",
+                               #"RF14",
+                               #"RF15",
+                               #"RF16",
+                               #"RF17",
+                               #"RF18"
                                 ]
    
    for research_flight in research_flights_to_process:

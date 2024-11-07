@@ -340,9 +340,10 @@ class BAHAMAS(HALO_Devices):
         elif raw_or_processed =="processed":
             from campaign_netcdf import CPGN_netCDF
             bahamas_path=self.cfg_dict["device_data_path"]+"/all_nc/"
+            print("BAHAMAS Path", bahamas_path)
             bahamas_file=CPGN_netCDF.identify_newest_version(bahamas_path,
-                                                device="bahamas",
-                                                date=self.cfg_dict["date"])
+                                    device="bahamas",for_calibrated_file=True,
+                                    date=self.cfg_dict["date"])
             
             #fname= "*"+str(self.cfg_dict["flight_date_used"])
         #print("Open bahamas data in ", self.device_data_path)
@@ -1367,15 +1368,18 @@ class RADAR(HALO_Devices):
         mlayer_mask[~ldr_mlayer_height.isnull()]+=1
         #-------------------------------------------------------------------------#
         # max 10 s gap filling via interpolation
-        ldr_mlayer_height=ldr_mlayer_height.interpolate(method="polynomial",order=5,
-                                                        limit=10,limit_area="inside",
-                                                        limit_direction="both")
+        ldr_mlayer_height=ldr_mlayer_height.interpolate(
+            method="polynomial",order=5,limit=10,limit_area="inside",
+            limit_direction="both")
         # Extrapolate
         ldr_mlayer_height=ldr_mlayer_height.interpolate(method="polynomial",order=5,
-                                                        limit_area="outside",limit=10,
-                                                        fill_value="extrapolate")
+            limit_area="outside",limit=10,fill_value="extrapolate")
         # where mlayer mask was zero, so no melting layer
         # but new interpolation now yields values
+        ## Reapply the upper altitude threshold but now set to 2000
+        # LDR should always lie below maximum height defined above
+        ldr_mlayer_height[ldr_mlayer_height>maximum_height]=2000
+        
         # period is uncertain
         condition_1=mlayer_mask==0
         condition_2=~ldr_mlayer_height.isnull()

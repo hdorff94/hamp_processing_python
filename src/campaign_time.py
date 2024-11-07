@@ -187,7 +187,7 @@ class Campaign_Time():
         flight_series=pd.Series(data=data_arg,
                                 index=np.array(index_arg))
         print(flight_series)
-        flights_used=flight_series.between(int(start),int(end),inclusive=True)
+        flights_used=flight_series.between(int(start),int(end),inclusive="both")
         interested_flights=flight_series[flights_used]
     
         return interested_flights

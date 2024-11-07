@@ -311,12 +311,12 @@ class CPGN_netCDF():
             if not instrument=="dropsondes":
                 calib_cfg="calibrate_"+instrument
                 if Performance.str2bool(cfg_dict[calib_cfg]):
-                    cfg_dict["comment"]="Preliminary Calibrated data. "+\
+                    cfg_dict["comment"]="Calibrated data. "+\
                                         "Still use with caution."
                 #device_dict["corr_comments"]
                 
         global_attrs={}
-        global_attrs["title"]="HAMP measurements on HALO Aircraft during"+\
+        global_attrs["title"]="HAMP measurements on HALO Aircraft during "+\
             cfg_dict["campaign"]
         global_attrs["institute"]="Meteorological Institute, "+\
             "Universitaet Hamburg; Max Planck Institute for Meteorology;"+\
