@@ -8,8 +8,8 @@ Created on Fri Jan 29 08:09:31 2021
 """
 def main(campaign_name,rf,
          instruments_to_unify=[#"bahamas",
-                               "radar",
-                               #"radiometer",
+                               #"radar",
+                               "radiometer",
                                #"dropsondes", 
                                ] # default bahamas, dropsondes, radar, radiometer.
          ):
@@ -145,7 +145,7 @@ def main(campaign_name,rf,
                              "add_radar_mask_values":True,    # if false mask 
                                                                        # is not added to the data
                                       
-                             "version":2,
+                             "version":0,
                              "subversion":7,
                              "quicklooks":False,               # default True
                              "missing_value":-888,
@@ -167,7 +167,7 @@ def main(campaign_name,rf,
                                       "num_RangeGates_for_sfc":4})
     
     cfg.add_entries_to_config_object(processing_cfg_name,
-                                     {"calibrate_radiometer":True, # 1.x
+                                     {"calibrate_radiometer":False, # 1.x
                                       "calibrate_radar":True})     # 1.x
     
     processing_config_file=cfg.load_config_file(processing_cfg_name)
@@ -263,7 +263,7 @@ def main(campaign_name,rf,
 if __name__=="__main__":
    campaign="HALO_AC3"
    research_flights_to_process=[
-                               "RF01",
+                               #"RF01",
                                #"RF02",
                                #"RF03",
                                #"RF04",
@@ -273,7 +273,7 @@ if __name__=="__main__":
                                #"RF08",#,
                                #"RF09",
                                #"RF10",#
-                               #"RF11",
+                               "RF11",
                                #"RF12",
                                #"RF13",
                                #"RF14",

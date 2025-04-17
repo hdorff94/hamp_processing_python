@@ -1005,8 +1005,8 @@ def unifyGrid_radiometer(flight,uni_df,
             ind_time_jumps=tb_data.index.to_series().diff()
             ind_time_jumps=ind_time_jumps.loc[ind_time_jumps>"1s"]
             tb_data.loc[ind_time_jumps.index,:]=np.nan
-            #units_temp      = radiometer_ds["TBs"].attrs["units"]
-            #long_name_temp  = "Brightness Temperature"
+            units_temp      = radiometer_ds["TBs"].attrs["units"]
+            long_name_temp  = "Brightness Temperature"
             
             #Preallocate unified radiometer channel as pd.DataFrame()
             if cfg_dict["fill_value"]=="nan":

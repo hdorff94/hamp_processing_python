@@ -193,6 +193,12 @@ class CPGN_netCDF():
                                         
                     if merged_df_created:                    
                         dims=coords_dict.keys()
+                        if var=="uniRadiometer":
+                            pass
+                        #    var_copy="TB"
+                        #else:
+                        #    var_copy=var
+                            
                         da_var_name=extra_info_tmp["varname"][var]
                   
                         ds[da_var_name]=xr.DataArray(temporary_df,
@@ -319,8 +325,8 @@ class CPGN_netCDF():
         global_attrs["title"]="HAMP measurements on HALO Aircraft during "+\
             cfg_dict["campaign"]
         global_attrs["institute"]="Meteorological Institute, "+\
-            "Universitaet Hamburg; Max Planck Institute for Meteorology;"+\
-            "Institute for Geophysics and Meteorology, University of Cologne;"+\
+            "Universitaet Hamburg; Max Planck Institute for Meteorology; "+\
+            "Institute for Geophysics and Meteorology, University of Cologne; "+\
             "DLR Institute for Physics of the Atmosphere, German Aerospace Center"
         global_attrs["contact"]=cfg_dict["contact"]
         global_attrs["source"]="HAMP "+cfg_dict["instruments_to_unify"]

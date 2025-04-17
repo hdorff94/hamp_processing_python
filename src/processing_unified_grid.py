@@ -446,6 +446,12 @@ class Radiometer_Processing():
         ds_new=ds.assign(TB=ds["TB"]*calib_coeff_da["slope"].values+\
                          calib_coeff_da["offset"].values)
         ds_new=ds_new.sortby("uniRadiometer_freq")
+        ds_new["TB"].attrs=ds["TB"].attrs
+        for freq in ds.freq:
+            tb_diff=np.mean(ds_new["TB"].sel({"uniRadiometer_freq":freq})-\
+                            ds["TB"].sel({"uniRadiometer_freq":freq}))
+            print(freq.values,"GHz, mean difference ",tb_diff.values)
+        #print()
         print("HAMP TB calibration done!")
         return ds_new
                   
